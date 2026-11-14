@@ -87,6 +87,17 @@ export default function CountrySearchBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Keep search bar text in sync with global country state
+  useEffect(() => {
+    if (!state.isolatedCountry && !state.focusedCountry) {
+      setQuery('')
+    } else if (state.isolatedCountry) {
+      setQuery(state.isolatedCountry.name)
+    } else if (state.focusedCountry) {
+      setQuery(state.focusedCountry.name)
+    }
+  }, [state.isolatedCountry, state.focusedCountry])
+
   // Sync suggestions when query changes
   const handleInputChange = (e) => {
     const val = e.target.value
@@ -167,6 +178,7 @@ export default function CountrySearchBar() {
     setSuggestions([])
     setIsOpen(false)
     dispatch({ type: 'CLEAR_FOCUSED_COUNTRY' })
+    dispatch({ type: 'CLEAR_ISOLATED_COUNTRY' })
     if (inputRef.current) inputRef.current.focus()
   }
 

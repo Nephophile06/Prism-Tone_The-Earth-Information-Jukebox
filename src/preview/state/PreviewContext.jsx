@@ -118,6 +118,12 @@ function divisionName(id) {
 }
 
 function scopeNameFor(state) {
+  if (state.isolatedCountry) {
+    return `${state.isolatedCountry.name}`
+  }
+  if (state.focusedCountry) {
+    return `${state.focusedCountry.name}`
+  }
   return state.scope.type === 'division' || state.scope.type === 'region'
     ? divisionName(state.scope.id)
     : 'World'
@@ -369,7 +375,12 @@ function reducer(state, action) {
     case 'SHOW_UNAVAILABLE':
       return { ...state, unavailableNoticeId: action.id }
     case 'SET_SCOPE':
-      return refreshIdle({ ...state, scope: action.scope })
+      return refreshIdle({
+        ...state,
+        scope: action.scope,
+        focusedCountry: null,
+        isolatedCountry: null,
+      })
     case 'FOCUS_COUNTRY':
       return refreshIdle({
         ...state,
@@ -391,9 +402,9 @@ function reducer(state, action) {
       })
     }
     case 'CLEAR_ISOLATED_COUNTRY':
-      return { ...state, isolatedCountry: null }
+      return refreshIdle({ ...state, isolatedCountry: null, focusedCountry: null })
     case 'CLEAR_FOCUSED_COUNTRY':
-      return { ...state, focusedCountry: null, isolatedCountry: null }
+      return refreshIdle({ ...state, focusedCountry: null, isolatedCountry: null })
     case 'SET_TIME_MODE':
       return refreshIdle({ ...state, timeMode: action.mode })
     case 'SET_YEAR': {

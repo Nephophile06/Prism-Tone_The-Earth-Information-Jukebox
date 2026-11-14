@@ -158,6 +158,20 @@ function getChoroplethColor(t) {
   return `rgb(${c[0]}, ${c[1]}, ${c[2]})`
 }
 
+/** Robust multi-property GeoJSON filter to match any country accurately */
+function makeCountryFilter(country) {
+  if (!country) return ['==', ['get', 'name'], '']
+  const clauses = []
+  if (country.geoName) clauses.push(['==', ['get', 'name'], country.geoName])
+  if (country.name && country.name !== country.geoName) clauses.push(['==', ['get', 'name'], country.name])
+  if (country.nameLong) clauses.push(['==', ['get', 'name_long'], country.nameLong])
+  if (country.iso2) clauses.push(['==', ['get', 'iso_a2'], country.iso2])
+  if (country.iso3) clauses.push(['==', ['get', 'iso_a3'], country.iso3])
+  if (clauses.length === 1) return clauses[0]
+  if (clauses.length > 1) return ['any', ...clauses]
+  return ['==', ['get', 'name'], '']
+}
+
 export default function SubcontinentMap() {
   const { state, dispatch, variable, steps } = usePreview()
   const mapContainer = useRef(null)
@@ -473,24 +487,29 @@ export default function SubcontinentMap() {
           })
 
           // Click on country to isolate it directly
-          map.on('click', 'countries-interactive-click', (e) => {
+          map.on('click', 'countries-fill', (e) => {
             if (!e.features || !e.features.length) return
-            const featName = e.features[0].properties?.name
-            const country = findCountry(featName)
+            const p = e.features[0].properties
+            const nameToSearch = p?.name || p?.formal_en || p?.name_long
+            const country = findCountry(nameToSearch) || (p?.iso_a2 ? findCountry(p.iso_a2) : null)
             if (country) {
+              if (e.originalEvent) {
+                e.originalEvent._countryHandled = true
+              }
               dispatch({ type: 'ISOLATE_COUNTRY', country })
             }
           })
 
-          map.on('mousemove', 'countries-interactive-click', () => {
+          map.on('mousemove', 'countries-fill', () => {
             map.getCanvas().style.cursor = 'pointer'
           })
 
-          map.on('mouseleave', 'countries-interactive-click', () => {
+          map.on('mouseleave', 'countries-fill', () => {
             map.getCanvas().style.cursor = ''
           })
 
           map.on('click', 'world-fill', (e) => {
+            if (e.originalEvent && e.originalEvent._countryHandled) return
             if (!e.features || !e.features.length) return
             const featId = e.features[0].properties?.id || e.features[0].id
             if (featId) {
@@ -591,9 +610,19 @@ export default function SubcontinentMap() {
       const selectedContinent = CONTINENT_BY_ID[selectedId]
 
       if (state.isolatedCountry) {
-        // 1. Isolated Country Mode: hide background world/continents so ONLY the isolated country glows
+        // 1. ISOLATED COUNTRY MODE:
+        // Dim background world/continents so ONLY the isolated country glows
+        const country = state.isolatedCountry
+        const countryFilter = makeCountryFilter(country)
+        const countryColor = country.continentId && CONTINENT_BY_ID[country.continentId]
+          ? CONTINENT_BY_ID[country.continentId].color
+          : '#38bdf8'
+
         if (map.getLayer('Water')) {
           map.setPaintProperty('Water', 'fill-color', WATER_COLOR_ISOLATED)
+        }
+        if (map.getLayer('River')) {
+          map.setPaintProperty('River', 'line-color', WATER_COLOR_ISOLATED)
         }
         if (map.getLayer('Background')) {
           map.setPaintProperty('Background', 'background-color', '#101212')
@@ -613,28 +642,72 @@ export default function SubcontinentMap() {
         if (map.getLayer('world-selected-border')) {
           map.setFilter('world-selected-border', ['==', ['get', 'id'], ''])
         }
+
+        // Apply country isolated styling
+        if (map.getLayer('country-isolated-glow')) {
+          map.setFilter('country-isolated-glow', countryFilter)
+          map.setPaintProperty('country-isolated-glow', 'line-color', countryColor)
+          map.setPaintProperty('country-isolated-glow', 'line-opacity', 0.85)
+        }
+        if (map.getLayer('country-isolated-fill')) {
+          map.setFilter('country-isolated-fill', countryFilter)
+          map.setPaintProperty('country-isolated-fill', 'fill-color', countryColor)
+          map.setPaintProperty('country-isolated-fill', 'fill-opacity', 0.95)
+        }
+        if (map.getLayer('country-isolated-border')) {
+          map.setFilter('country-isolated-border', countryFilter)
+          map.setPaintProperty('country-isolated-border', 'line-color', '#ffffff')
+          map.setPaintProperty('country-isolated-border', 'line-width', 2.8)
+        }
+
+        // Hide continent markers during isolated mode
+        markersRef.current.forEach((m) => {
+          const el = m.getElement()
+          if (el) el.style.display = 'none'
+        })
+
+        // Hide symbol layers in isolated mode
+        try {
+          const styleLayers = map.getStyle().layers || []
+          styleLayers.forEach((layer) => {
+            if (layer.type === 'symbol') {
+              map.setLayoutProperty(layer.id, 'visibility', 'none')
+            }
+          })
+        } catch (_) { }
+
       } else if (selectedId && selectedContinent) {
-        // 2. Specific Continent Selected: High contrast highlight on selected continent, dim others!
+        // 2. SPECIFIC CONTINENT SELECTED:
+        // High contrast highlight on selected continent (bright 1.0 + border), dim others (0.15)!
         if (map.getLayer('Water')) {
           map.setPaintProperty('Water', 'fill-color', WATER_COLOR_WORLD)
+        }
+        if (map.getLayer('River')) {
+          map.setPaintProperty('River', 'line-color', WATER_COLOR_WORLD)
         }
         if (map.getLayer('Background')) {
           map.setPaintProperty('Background', 'background-color', WATER_COLOR_WORLD)
         }
+
+        // Reset isolated country layers
+        if (map.getLayer('country-isolated-glow')) map.setFilter('country-isolated-glow', ['==', ['get', 'name'], ''])
+        if (map.getLayer('country-isolated-fill')) map.setFilter('country-isolated-fill', ['==', ['get', 'name'], ''])
+        if (map.getLayer('country-isolated-border')) map.setFilter('country-isolated-border', ['==', ['get', 'name'], ''])
+
         if (map.getLayer('world-fill')) {
           map.setPaintProperty('world-fill', 'fill-opacity', [
             'case',
             ['==', ['get', 'id'], selectedId],
-            0.95,
-            0.18,
+            1.0,
+            0.15,
           ])
         }
         if (map.getLayer('countries-fill')) {
           map.setPaintProperty('countries-fill', 'fill-opacity', [
             'case',
             ['==', ['get', 'continent'], selectedContinent.name],
-            0.95,
-            0.18,
+            1.0,
+            0.15,
           ])
         }
         if (map.getLayer('world-borders')) {
@@ -642,7 +715,13 @@ export default function SubcontinentMap() {
             'case',
             ['==', ['get', 'id'], selectedId],
             1.0,
-            0.18,
+            0.15,
+          ])
+          map.setPaintProperty('world-borders', 'line-width', [
+            'case',
+            ['==', ['get', 'id'], selectedId],
+            3.2,
+            1.0,
           ])
         }
         if (map.getLayer('country-borders-black')) {
@@ -650,23 +729,49 @@ export default function SubcontinentMap() {
             'case',
             ['==', ['get', 'continent'], selectedContinent.name],
             0.85,
-            0.15,
+            0.12,
           ])
         }
         if (map.getLayer('world-selected-border')) {
           map.setFilter('world-selected-border', ['==', ['get', 'id'], selectedId])
           map.setPaintProperty('world-selected-border', 'line-color', selectedContinent.border || '#ffffff')
-          map.setPaintProperty('world-selected-border', 'line-width', 3.6)
+          map.setPaintProperty('world-selected-border', 'line-width', 3.8)
           map.setPaintProperty('world-selected-border', 'line-opacity', 1)
         }
+
+        // Restore symbol layers and continent markers
+        markersRef.current.forEach((m) => {
+          const el = m.getElement()
+          if (el) el.style.display = ''
+        })
+        try {
+          const styleLayers = map.getStyle().layers || []
+          styleLayers.forEach((layer) => {
+            if (layer.type === 'symbol') {
+              if (layer.id.toLowerCase().includes('continent')) return
+              map.setLayoutProperty(layer.id, 'visibility', 'visible')
+            }
+          })
+        } catch (_) { }
+
       } else {
-        // 3. Global World Map Mode: Normal full colors, all continents bright!
+        // 3. GLOBAL WORLD OVERVIEW:
+        // Full normal opacities (0.95), all continents bright!
         if (map.getLayer('Water')) {
           map.setPaintProperty('Water', 'fill-color', WATER_COLOR_WORLD)
+        }
+        if (map.getLayer('River')) {
+          map.setPaintProperty('River', 'line-color', WATER_COLOR_WORLD)
         }
         if (map.getLayer('Background')) {
           map.setPaintProperty('Background', 'background-color', WATER_COLOR_WORLD)
         }
+
+        // Reset isolated country layers
+        if (map.getLayer('country-isolated-glow')) map.setFilter('country-isolated-glow', ['==', ['get', 'name'], ''])
+        if (map.getLayer('country-isolated-fill')) map.setFilter('country-isolated-fill', ['==', ['get', 'name'], ''])
+        if (map.getLayer('country-isolated-border')) map.setFilter('country-isolated-border', ['==', ['get', 'name'], ''])
+
         if (map.getLayer('world-fill')) {
           map.setPaintProperty('world-fill', 'fill-opacity', 0.95)
         }
@@ -675,6 +780,7 @@ export default function SubcontinentMap() {
         }
         if (map.getLayer('world-borders')) {
           map.setPaintProperty('world-borders', 'line-opacity', 0.95)
+          map.setPaintProperty('world-borders', 'line-width', 2.2)
         }
         if (map.getLayer('country-borders-black')) {
           map.setPaintProperty('country-borders-black', 'line-opacity', [
@@ -687,6 +793,21 @@ export default function SubcontinentMap() {
         if (map.getLayer('world-selected-border')) {
           map.setFilter('world-selected-border', ['==', ['get', 'id'], ''])
         }
+
+        // Restore symbol layers and continent markers
+        markersRef.current.forEach((m) => {
+          const el = m.getElement()
+          if (el) el.style.display = ''
+        })
+        try {
+          const styleLayers = map.getStyle().layers || []
+          styleLayers.forEach((layer) => {
+            if (layer.type === 'symbol') {
+              if (layer.id.toLowerCase().includes('continent')) return
+              map.setLayoutProperty(layer.id, 'visibility', 'visible')
+            }
+          })
+        } catch (_) { }
       }
     }
 
@@ -697,76 +818,14 @@ export default function SubcontinentMap() {
     }
   }, [values, extent, state.scope, state.isolatedCountry, mapLoaded, mapInstance])
 
-  /* Camera movement & Layer visibility when country or scope changes */
+  /* Camera movement when country or scope changes (Dedicated Camera Controller) */
   useEffect(() => {
     const map = mapRef.current || mapInstance
     if (!map) return
 
-    // 1. ISOLATED COUNTRY MODE
+    // 1. ISOLATED COUNTRY MODE CAMERA
     if (state.isolatedCountry) {
       const country = state.isolatedCountry
-      const countryName = country.geoName || country.name
-
-      // Restore original sea-green water color for isolated mode
-      if (map.getLayer('Water')) {
-        map.setPaintProperty('Water', 'fill-color', WATER_COLOR_ISOLATED)
-      }
-      if (map.getLayer('River')) {
-        map.setPaintProperty('River', 'line-color', WATER_COLOR_ISOLATED)
-      }
-      if (map.getLayer('Background')) {
-        map.setPaintProperty('Background', 'background-color', '#101212')
-      }
-
-      // Dim/hide all other continents & country borders so ONLY the country is shown
-      if (map.getLayer('world-fill')) map.setPaintProperty('world-fill', 'fill-opacity', 0)
-      if (map.getLayer('countries-fill')) map.setPaintProperty('countries-fill', 'fill-opacity', 0)
-      if (map.getLayer('world-borders')) map.setPaintProperty('world-borders', 'line-opacity', 0)
-      if (map.getLayer('country-borders-black')) map.setPaintProperty('country-borders-black', 'line-opacity', 0)
-      if (map.getLayer('world-selected-border')) map.setFilter('world-selected-border', ['==', ['get', 'id'], ''])
-
-      // Hide continent floating markers
-      markersRef.current.forEach((m) => {
-        const el = m.getElement()
-        if (el) el.style.display = 'none'
-      })
-
-      // Hide all style symbol layers during isolated mode so surrounding text does not clutter the void
-      try {
-        const styleLayers = map.getStyle().layers || []
-        styleLayers.forEach((layer) => {
-          if (layer.type === 'symbol') {
-            map.setLayoutProperty(layer.id, 'visibility', 'none')
-          }
-        })
-      } catch (_) { }
-
-      // Turn on isolated country layers
-      const countryColor = country.continentId && CONTINENT_BY_ID[country.continentId]
-        ? CONTINENT_BY_ID[country.continentId].color
-        : '#d4a55b'
-
-      if (map.getLayer('country-isolated-glow')) {
-        map.setFilter('country-isolated-glow', ['==', ['get', 'name'], countryName])
-        map.setPaintProperty('country-isolated-glow', 'line-color', countryColor)
-        map.setPaintProperty('country-isolated-glow', 'line-opacity', 0.85)
-      }
-      if (map.getLayer('country-isolated-fill')) {
-        map.setFilter('country-isolated-fill', ['==', ['get', 'name'], countryName])
-        map.setPaintProperty('country-isolated-fill', 'fill-color', countryColor)
-        map.setPaintProperty('country-isolated-fill', 'fill-opacity', 0.95)
-      }
-      if (map.getLayer('country-isolated-border')) {
-        map.setFilter('country-isolated-border', ['==', ['get', 'name'], countryName])
-        map.setPaintProperty('country-isolated-border', 'line-color', '#ffffff')
-        map.setPaintProperty('country-isolated-border', 'line-width', 2.8)
-      }
-
-      // Hide general focus borders
-      if (map.getLayer('country-focused-border')) map.setFilter('country-focused-border', ['==', ['get', 'name'], ''])
-      if (map.getLayer('country-focused-fill')) map.setFilter('country-focused-fill', ['==', ['get', 'name'], ''])
-
-      // Camera zooms in tightly to the isolated country
       if (country.bounds) {
         map.fitBounds(country.bounds, {
           padding: { top: 90, bottom: 160, left: 100, right: 100 },
@@ -786,53 +845,7 @@ export default function SubcontinentMap() {
       return
     }
 
-    // 2. NORMAL / WORLD MODE
-    // Set pastel sky blue water color for global world map
-    if (map.getLayer('Water')) {
-      map.setPaintProperty('Water', 'fill-color', WATER_COLOR_WORLD)
-    }
-    if (map.getLayer('River')) {
-      map.setPaintProperty('River', 'line-color', WATER_COLOR_WORLD)
-    }
-    if (map.getLayer('Background')) {
-      map.setPaintProperty('Background', 'background-color', WATER_COLOR_WORLD)
-    }
-
-    // Reset isolated country layers
-    if (map.getLayer('country-isolated-glow')) map.setFilter('country-isolated-glow', ['==', ['get', 'name'], ''])
-    if (map.getLayer('country-isolated-fill')) map.setFilter('country-isolated-fill', ['==', ['get', 'name'], ''])
-    if (map.getLayer('country-isolated-border')) map.setFilter('country-isolated-border', ['==', ['get', 'name'], ''])
-
-    // Restore standard continent fills and borders
-    if (map.getLayer('world-fill')) map.setPaintProperty('world-fill', 'fill-opacity', 0.95)
-    if (map.getLayer('countries-fill')) map.setPaintProperty('countries-fill', 'fill-opacity', 0.95)
-    if (map.getLayer('world-borders')) map.setPaintProperty('world-borders', 'line-opacity', 0.95)
-    if (map.getLayer('country-borders-black')) {
-      map.setPaintProperty('country-borders-black', 'line-opacity', [
-        'interpolate', ['linear'], ['zoom'],
-        1, 0.70,
-        3, 0.85,
-        6, 0.95
-      ])
-    }
-
-    // Restore text symbol labels
-    try {
-      const styleLayers = map.getStyle().layers || []
-      styleLayers.forEach((layer) => {
-        if (layer.type === 'symbol') {
-          if (layer.id.toLowerCase().includes('continent')) return
-          map.setLayoutProperty(layer.id, 'visibility', 'visible')
-        }
-      })
-    } catch (_) { }
-
-    // Restore continent markers
-    markersRef.current.forEach((m) => {
-      const el = m.getElement()
-      if (el) el.style.display = ''
-    })
-
+    // 2. FOCUSED COUNTRY CAMERA
     if (state.focusedCountry) {
       const { bounds, center } = state.focusedCountry
       if (bounds) {
@@ -854,6 +867,7 @@ export default function SubcontinentMap() {
       return
     }
 
+    // 3. CONTINENT ZOOM OR GLOBAL WORLD
     if (state.scope.type === 'division' && CONTINENT_BY_ID[state.scope.id]) {
       const c = CONTINENT_BY_ID[state.scope.id]
       map.flyTo({
@@ -884,18 +898,25 @@ export default function SubcontinentMap() {
     }
 
     const targetCountry = state.isolatedCountry || state.focusedCountry
-    if (!targetCountry || !targetCountry.center) return
+    if (!targetCountry || !targetCountry.center) {
+      if (map.getLayer('country-focused-border')) map.setFilter('country-focused-border', ['==', ['get', 'name'], ''])
+      if (map.getLayer('country-focused-fill')) map.setFilter('country-focused-fill', ['==', ['get', 'name'], ''])
+      return
+    }
 
-    const countryName = targetCountry.geoName || targetCountry.name
     const isIsolated = Boolean(state.isolatedCountry)
+    const countryFilter = makeCountryFilter(targetCountry)
 
     if (!isIsolated) {
       if (map.getLayer('country-focused-border')) {
-        map.setFilter('country-focused-border', ['==', ['get', 'name'], countryName])
+        map.setFilter('country-focused-border', countryFilter)
       }
       if (map.getLayer('country-focused-fill')) {
-        map.setFilter('country-focused-fill', ['==', ['get', 'name'], countryName])
+        map.setFilter('country-focused-fill', countryFilter)
       }
+    } else {
+      if (map.getLayer('country-focused-border')) map.setFilter('country-focused-border', ['==', ['get', 'name'], ''])
+      if (map.getLayer('country-focused-fill')) map.setFilter('country-focused-fill', ['==', ['get', 'name'], ''])
     }
 
     const el = document.createElement('div')
