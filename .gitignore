@@ -48,6 +48,9 @@ ehthumbs.db
 Thumbs.db
 [Dd]esktop.ini
 
+# User research documents (do not push to git)
+*.pdf
+
 # Vite & build caches
 .vite/
 .eslintcache

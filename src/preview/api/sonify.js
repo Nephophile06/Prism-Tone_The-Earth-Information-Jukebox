@@ -19,7 +19,7 @@
  */
 
 import { SCORE_VERSION, isValidScore } from '../lib/score'
-import { sonifyImageClient } from '../lib/clientImageSonifier'
+import { sonifyImageClient, sonifyVideoClient } from '../lib/clientImageSonifier'
 
 const API_BASE = (import.meta.env.VITE_PREVIEW_API || '/api').replace(/\/+$/, '')
 const TIMEOUT_MS = 20000
@@ -308,6 +308,12 @@ export async function fetchVideoScore({ file, videoUrl, options, signal } = {}) 
   const problem = usingFile ? validateVideoFile(file) : validateVideoUrl(videoUrl)
   if (problem) return { ok: false, aborted: false, kind: 'invalid', message: problem }
 
+  // 1. Pure client-side default: run browser-native HTML5 Canvas video frame sonification directly
+  if (!import.meta.env.VITE_PREVIEW_API) {
+    return await sonifyVideoClient({ file, videoUrl, options })
+  }
+
+  // 2. If dedicated backend is configured:
   try {
     let payload
     if (usingFile) {
@@ -330,8 +336,8 @@ export async function fetchVideoScore({ file, videoUrl, options, signal } = {}) 
     }
 
     const result = readEnvelope(payload)
-    if (!result) {
-      return await sonifyImageClient({ file, imageUrl, options })
+    if (!result || !result.ok) {
+      return await sonifyVideoClient({ file, videoUrl, options })
     }
     return result
   } catch (err) {
@@ -340,7 +346,7 @@ export async function fetchVideoScore({ file, videoUrl, options, signal } = {}) 
     }
     // Fail-safe client-side sonification fallback
     try {
-      const clientResult = await sonifyImageClient({ file, imageUrl, options })
+      const clientResult = await sonifyVideoClient({ file, videoUrl, options })
       if (clientResult && clientResult.ok) {
         return clientResult
       }

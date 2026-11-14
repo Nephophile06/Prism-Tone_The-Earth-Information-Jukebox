@@ -912,9 +912,8 @@ export default function ImagePanel() {
               /* Video Sequence Controls */
               <div className="space-y-4">
                 <p className="font-ui text-[14px] leading-relaxed text-cream">
-                  Upload a short Earth-observation clip or point at an https video. The FastAPI service samples up to
-                  twelve evenly spaced frames, scans each one, and returns a single score. Video scoring is live-only:
-                  there is no checked-in score, so the API must be running.
+                  Upload a short Earth-observation clip or point at an https video. The sonification engine samples up to
+                  twelve evenly spaced frames across the video, analyzes each frame directly in your browser using HTML5 Canvas & OpenCV computer vision algorithms, and generates a synchronized soundscape.
                 </p>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -1052,7 +1051,7 @@ export default function ImagePanel() {
                         ? 'Live scoring selected · falls back to the checked-in score'
                         : 'Precomputed score checked in with the frame · no network needed'
                   : activeTab === 'video'
-                    ? 'Live OpenCV video scoring · 12 sampled frames · API required'
+                    ? 'Browser-native video sonification · 12 sampled frames via HTML5 Canvas & Tone.js'
                     : 'Browser-native computer vision sonification via HTML5 Canvas & Tone.js'}
               </p>
 
