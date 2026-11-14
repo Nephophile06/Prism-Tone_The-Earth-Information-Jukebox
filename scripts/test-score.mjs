@@ -40,6 +40,10 @@ registerHooks({
 })
 
 const { engine } = await import('../src/preview/lib/sonify.js')
+const { buildScoreFromAnalysis, buildVideoScoreFromFrames } = await import('../src/preview/lib/clientImageSonifier.js')
+const { VARIABLES } = await import('../src/preview/data/datasets.js')
+const { planForStep, ambientPlan, describeAmbientSound } = await import('../src/preview/lib/music.js')
+const { buildSelectionSummary } = await import('../src/preview/lib/summary.js')
 
 let failures = 0
 let checks = 0
@@ -210,6 +214,146 @@ ok('an invalid score never becomes available', engine.scoreInfo.available === fa
 engine.setScore(payload, 'selection-d')
 engine.configure({ primary: 'T2M', layers: [], selectionKey: 'selection-e' })
 ok('a selection change drops the old score', engine.scoreInfo.available === false)
+
+/* ------------------------------------------------------------------ */
+/* Image and video score generation                                   */
+/* ------------------------------------------------------------------ */
+
+console.log('image and video scores')
+const GRID_PIXELS = 96 * 54
+const gridFixture = {
+  lumGrid: new Float32Array(GRID_PIXELS).fill(0.5),
+  hsvGrid: Array.from({ length: GRID_PIXELS }, () => ({ h: 0.5, s: 0.4, v: 0.5 })),
+  edgeGrid: new Float32Array(GRID_PIXELS).fill(0.1),
+  meanLum: 0.5,
+  meanSat: 0.4,
+}
+
+const imageScore = buildScoreFromAnalysis(gridFixture, 'default', {
+  key: 'G',
+  scale: 'G major pentatonic',
+})
+ok('image score is valid when scale arrives as a labelled string', isValidScore(imageScore))
+eq('image score resolves the scale id from "G major pentatonic"', imageScore.scale, 'major pentatonic')
+ok(
+  'image notes are all finite',
+  imageScore.tracks.every((track) => track.notes.every((note) => Number.isFinite(note.midi))),
+)
+
+const frames = Array.from({ length: 4 }, () => ({
+  lumGrid: gridFixture.lumGrid,
+  edgeGrid: gridFixture.edgeGrid,
+  meanLum: gridFixture.meanLum,
+  meanSat: gridFixture.meanSat,
+}))
+const videoScore = buildVideoScoreFromFrames(frames, {})
+ok('video score passes the MusicalScore contract', isValidScore(videoScore))
+ok(
+  'video notes are all finite',
+  videoScore.tracks.every((track) => track.notes.every((note) => Number.isFinite(note.midi))),
+)
+eq('video score defaults to D Dorian', `${videoScore.key} ${videoScore.scale}`, 'D Dorian')
+
+/* ------------------------------------------------------------------ */
+/* Ambient listening: fixed pitch, loudness carries the value          */
+/* ------------------------------------------------------------------ */
+
+console.log('ambient listening')
+const T2M = VARIABLES.find((v) => v.id === 'T2M')
+const RAIN = VARIABLES.find((v) => v.id === 'PRECTOTCORR')
+const basePlan = {
+  variable: T2M,
+  range: { lo: -20, hi: 30 },
+  prevValue: null,
+}
+
+const coolPlan = planForStep({
+  ...basePlan,
+  step: { key: '201001', value: -5 },
+  normal: 0,
+})
+const warmPlan = planForStep({
+  ...basePlan,
+  step: { key: '201007', value: 28 },
+  normal: 20,
+})
+const missingPlan = planForStep({
+  ...basePlan,
+  step: { key: '201002', value: null },
+  normal: null,
+})
+const coolAmb = ambientPlan(coolPlan, T2M)
+const warmAmb = ambientPlan(warmPlan, T2M)
+const silentAmb = ambientPlan(missingPlan, T2M)
+
+ok('ambient keeps one fixed marker pitch', coolAmb.markerMidi === warmAmb.markerMidi)
+ok('ambient raises presence with the value', warmAmb.level > coolAmb.level)
+ok('ambient brightens the filter with the value', warmAmb.filter > coolAmb.filter)
+ok('ambient never maps the value to a new marker pitch', warmAmb.markerMidi === 62)
+ok('ambient treats a missing month as silence', silentAmb.missing === true && silentAmb.level < 0.001)
+ok('ambient describes the fixed pitch', describeAmbientSound(warmPlan, T2M).toLowerCase().includes('fixed pitch'))
+
+const rainPlan = planForStep({
+  variable: RAIN,
+  step: { key: '201007', value: 8 },
+  normal: 2,
+  range: { lo: 0, hi: 10 },
+  prevValue: null,
+})
+ok(
+  'ambient rain says louder, not higher',
+  describeAmbientSound(rainPlan, RAIN).includes('not higher'),
+)
+
+/* ------------------------------------------------------------------ */
+/* Summary-first flow: gist sentence plus a short motif                */
+/* ------------------------------------------------------------------ */
+
+console.log('selection summary')
+const summarySeries = {}
+for (let m = 1; m <= 12; m += 1) summarySeries[`2010${String(m).padStart(2, '0')}`] = m
+
+const digest = buildSelectionSummary({
+  state: {
+    timeMode: 'year',
+    year: 2010,
+    month: 7,
+    range: { startYear: 2001, endYear: 2020 },
+    scope: { type: 'national' },
+    playState: 'idle',
+    position: 0,
+  },
+  variable: T2M,
+  seriesMap: summarySeries,
+  steps: [],
+  scopeName: 'World',
+  scopeKind: 'national',
+})
+ok('summary names both extremes with their months', digest.text.includes('Jan 2010') && digest.text.includes('Dec 2010'))
+ok('summary states the mean and unit', digest.text.includes('6.5 °C'))
+ok('summary makes no range claim when no baseline exists', digest.text.includes('no 1991–2020 normal'))
+ok('summary returns a playable motif', digest.notes.length >= 4)
+ok('summary motif has finite MIDI notes', digest.notes.every((n) => Number.isFinite(n.midi)))
+ok('summary motif stays in a comfortable register', digest.notes.every((n) => n.midi >= 30 && n.midi <= 90))
+
+const emptyDigest = buildSelectionSummary({
+  state: {
+    timeMode: 'year',
+    year: 2010,
+    month: 7,
+    range: { startYear: 2001, endYear: 2020 },
+    scope: { type: 'division' },
+    playState: 'idle',
+    position: 0,
+  },
+  variable: T2M,
+  seriesMap: {},
+  steps: [],
+  scopeName: 'Africa',
+  scopeKind: 'division',
+})
+ok('summary with no observations plays nothing', emptyDigest.notes.length === 0)
+ok('summary with no observations says so', emptyDigest.text.includes('no summary can be played'))
 
 console.log('')
 console.log(`${checks - failures}/${checks} checks passed`)

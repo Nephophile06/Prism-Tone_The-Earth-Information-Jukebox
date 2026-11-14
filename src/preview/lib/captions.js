@@ -14,7 +14,7 @@
 
 import { keyToLabel, monthLong, baselineNormal, getMonthly } from './processing'
 import { fmtValue } from './format'
-import { describeSound, planForStep } from './music'
+import { describeAmbientSound, describeSound, planForStep } from './music'
 import { scoreSoundSentence } from './score'
 import { BASELINE } from '../data/datasets'
 
@@ -103,6 +103,7 @@ export function describeStep({
   prevValue,
   scoreCaption,
   scoreMeta,
+  soundMode = 'analysis',
 }) {
   const label = step && step.key ? keyToLabel(step.key) : ''
   const scope = scopeShort(scopeName, scopeKind)
@@ -139,13 +140,15 @@ export function describeStep({
      marimba notes") but keep the numbers above derived from the loaded series.
      With only the score meta available (idle), state the one scale/tempo and
      still make no per-month mode-change claim. */
-  const sound = scoreMeta
-    ? scoreSoundSentence({
-        caption: scoreCaption,
-        scaleLabel: scoreMeta.scaleLabel,
-        tempo: scoreMeta.tempo,
-      })
-    : describeSound(plan, variable)
+  const sound = soundMode === 'ambient'
+    ? describeAmbientSound(plan, variable)
+    : scoreMeta
+      ? scoreSoundSentence({
+          caption: scoreCaption,
+          scaleLabel: scoreMeta.scaleLabel,
+          tempo: scoreMeta.tempo,
+        })
+      : describeSound(plan, variable)
 
   return {
     text: `${label} — ${scope}. ${valueSentence(variable, value)}, ${cmp.text}. ${sound} ${contextLine(scopeKind)}`,
@@ -170,6 +173,7 @@ export function describeSelection({
   scopeName,
   scopeKind,
   range,
+  soundMode = 'analysis',
 }) {
   if (state.timeMode === 'range') {
     return describeRange({
@@ -180,6 +184,7 @@ export function describeSelection({
       scopeName,
       scopeKind,
       range,
+      soundMode,
     })
   }
   const key = state.timeMode === 'month'
@@ -195,6 +200,7 @@ export function describeSelection({
     scopeKind,
     range,
     prevValue: getMonthly(seriesMap, state.year, state.month - 1),
+    soundMode,
   })
 }
 
@@ -207,6 +213,7 @@ export function describeRange({
   scopeName,
   scopeKind,
   range,
+  soundMode = 'analysis',
 }) {
   const { startYear, endYear } = state.range
   const label = `${startYear}–${endYear}`
@@ -255,7 +262,7 @@ export function describeRange({
     : `All ${total} months had a valid value.`
 
   return {
-    text: `${label} at ${scope}. ${variable.name} averaged ${fmtValue(mean, variable.decimals)} ${variable.unit} across ${n} months, ${cmp.text}. ${describeSound(plan, variable)} ${coverageText} ${contextLine(scopeKind)}`,
+    text: `${label} at ${scope}. ${variable.name} averaged ${fmtValue(mean, variable.decimals)} ${variable.unit} across ${n} months, ${cmp.text}. ${soundMode === 'ambient' ? describeAmbientSound(plan, variable) : describeSound(plan, variable)} ${coverageText} ${contextLine(scopeKind)}`,
     shortText: `${label} · mean ${fmtValue(mean, variable.decimals)} ${variable.unit} · ${deltaShort(variable, cmp.delta)}`,
     key: null,
     label,
@@ -269,7 +276,7 @@ export function describeRange({
 }
 
 /** Static caption while idle. */
-export function idleCaption({ variable, scopeName, scopeKind, hasData, ready }) {
+export function idleCaption({ variable, scopeName, scopeKind, hasData, ready, soundMode = 'analysis' }) {
   if (!ready) return 'Retrieving NASA POWER data — captions will follow the data.'
   if (!hasData) return 'No valid observations for this selection — nothing can be sonified.'
   const scope = scopeShort(scopeName, scopeKind)
@@ -278,7 +285,13 @@ export function idleCaption({ variable, scopeName, scopeKind, hasData, ready }) 
     PRECTOTCORR: 'Each month becomes two beats of marimba in G major pentatonic: heavier rain adds notes over a bass and a filtered wash.',
     WS10M: 'Each month becomes two beats of filtered wind in D minor pentatonic: stronger wind weighs the drone and opens the filter.',
   }[variable.id]
-  return `Paused — ${variable.name} at ${scope}. ${mapping} Press play to listen through the selected time.`
+  const ambientMapping = {
+    T2M: 'Ambient mode holds one fixed pitch and lets a filtered air band grow louder as the month warms; it loops until you stop it.',
+    PRECTOTCORR: 'Ambient mode holds fixed marimba pitches and lets the rain wash grow louder with heavier rain; it loops until you stop it.',
+    WS10M: 'Ambient mode holds a fixed drone and raises the wind bed’s volume with stronger wind; it loops until you stop it.',
+  }[variable.id]
+  const description = soundMode === 'ambient' ? ambientMapping : mapping
+  return `Paused — ${variable.name} at ${scope}. ${description} Press play to listen through the selected time.`
 }
 
 /** Short announcement when playback reaches the end naturally. */

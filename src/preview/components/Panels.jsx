@@ -9,14 +9,14 @@
 import { memo } from 'react'
 import { usePreview } from '../state/PreviewContext'
 import { selectionSummary, sparklineWindow } from '../lib/selectors'
-import { fmtValue, fmtDelta, fmtPct } from '../lib/format'
+import { fmtValue, fmtDelta, fmtPct, fmtTime } from '../lib/format'
 import { YEAR_MIN, YEAR_MAX, BASELINE, SOURCE } from '../data/datasets'
 import { CONTINENT_BY_ID } from '../data/world'
 import Sparkline from './Sparkline'
 import Panel from './Panel'
 
 function SummaryPanel() {
-  const { state, steps, seriesMap, variable } = usePreview()
+  const { state, steps, seriesMap, variable, actions } = usePreview()
 
   if (state.data.status === 'loading' || state.data.status === 'idle') {
     return (
@@ -84,6 +84,22 @@ function SummaryPanel() {
         label={`${variable.name} trend ending at the current selection. Dashed line is the 1991–2020 normal.`}
       />
 
+      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+        <button
+          type="button"
+          onClick={actions.playSummary}
+          className="inline-flex items-center gap-2 border border-ivory/40 bg-ivory/10 px-3 py-2 font-ui text-[14px] text-ivory transition-colors hover:border-ivory/70 hover:bg-ivory/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+        >
+          <svg width="9" height="10" viewBox="0 0 10 12" aria-hidden="true">
+            <path d="M1 1 L9 6 L1 11 Z" fill="currentColor" />
+          </svg>
+          Hear summary
+        </button>
+        <span className="font-ui text-[12.5px] leading-relaxed text-cream">
+          One sentence and a short motif — the range, the mean and the comparison — before the month-by-month walk.
+        </span>
+      </div>
+
       <dl className="mt-4 grid grid-cols-2 border-t border-ivory/10">
         <SummaryStat label="Minimum" value={s.selMin} decimals={variable.decimals} unit={variable.unit} />
         <SummaryStat
@@ -134,8 +150,65 @@ function SummaryPanel() {
           is not shown rather than guessed.
         </p>
       )}
+
+      <ProvenanceStrip state={state} variable={variable} />
     </Panel>
   )
+}
+
+/**
+ * The provenance strip answers "where did these numbers come from, exactly?"
+ * — the trust question raised by the astronomy-sonification survey. It uses
+ * only metadata the app already holds: the retrieval path, the timestamp and
+ * the sampled coordinates.
+ */
+function ProvenanceStrip({ state, variable }) {
+  const meta = state.data.meta || {}
+  const division = state.scope.type === 'division' ? CONTINENT_BY_ID[state.scope.id] : null
+  const coords = coordinateLabel(division)
+  const sample = coords ? `${coords} centroid` : 'Seven centroids · planetary mean'
+  const viaLabel = {
+    backend: 'project API',
+    direct: 'NASA POWER API',
+    session: 'session cache',
+    mixed: 'API and cache',
+  }[meta.via] || 'bundled snapshot'
+  const retrieved = meta.fetchedAt ? `${fmtTime(meta.fetchedAt)} · ${viaLabel}` : viaLabel
+
+  return (
+    <section aria-label="Data provenance" className="mt-4 border-t border-ivory/10 pt-3">
+      <h3 className="font-stencil text-[11px] uppercase tracking-[0.2em] text-beige">Where this comes from</h3>
+      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+        <ProvRow label="Source" value={`${SOURCE.name} · MERRA-2 monthly`} />
+        <ProvRow label="Parameter" value={`${variable.param} · ${variable.headline || variable.name}`} />
+        <ProvRow label="Sample" value={sample} />
+        <ProvRow label="Record" value={`${YEAR_MIN}–${YEAR_MAX} · normals ${BASELINE.start}–${BASELINE.end}`} />
+        <div className="col-span-2">
+          <dt className="font-ui text-[12px] text-beige">Retrieved</dt>
+          <dd className="mt-0.5 font-data text-[12px] text-ivory">{retrieved}</dd>
+        </div>
+      </dl>
+      <p className="mt-2 font-ui text-[12px] leading-relaxed text-cream">
+        Reanalysis values at the sample point; no area average is implied. Missing months stay missing.
+      </p>
+    </section>
+  )
+}
+
+function ProvRow({ label, value }) {
+  return (
+    <div>
+      <dt className="font-ui text-[12px] text-beige">{label}</dt>
+      <dd className="mt-0.5 font-data text-[12px] leading-snug text-ivory">{value}</dd>
+    </div>
+  )
+}
+
+function coordinateLabel(division) {
+  if (!division || !Number.isFinite(division.lat) || !Number.isFinite(division.lon)) return null
+  const lat = `${Math.abs(division.lat).toFixed(1)}°${division.lat >= 0 ? 'N' : 'S'}`
+  const lon = `${Math.abs(division.lon).toFixed(1)}°${division.lon >= 0 ? 'E' : 'W'}`
+  return `${lat}, ${lon}`
 }
 
 function SummaryStat({ label, value, decimals, unit, className = '' }) {

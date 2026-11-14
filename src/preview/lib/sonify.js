@@ -36,7 +36,7 @@
  * click.
  */
 
-import { MONTH_BEATS, planForStep, phraseForSteps, quantize } from './music'
+import { MONTH_BEATS, ambientPlan, planForStep, phraseForSteps, quantize } from './music'
 import {
   isValidScore,
   scoreBeatsPerStep,
@@ -121,6 +121,7 @@ class LocalEngine {
     this.volume = 0.8
     this.rate = 1
     this.layersSetting = { pulse: false }
+    this.soundMode = 'analysis' // analysis | ambient
     this.state = 'idle' // idle | playing | paused
 
     this.timer = null
@@ -379,6 +380,12 @@ class LocalEngine {
     this.rate = Math.max(0.5, Math.min(2, r))
   }
 
+  /** Analysis maps every value to pitch; ambient keeps pitch fixed and uses
+      loudness and texture, then loops instead of ending. */
+  setSoundMode(mode) {
+    this.soundMode = mode === 'ambient' ? 'ambient' : 'analysis'
+  }
+
   /* ---------------- layer helpers ---------------- */
 
   _leadLayer() {
@@ -450,6 +457,12 @@ class LocalEngine {
     if (this.state === 'playing') return
     this.state = 'playing'
     this.position = 0
+    /* A summary motif may still be decaying; clear it so the walk starts clean. */
+    try {
+      this.pluck?.releaseAll()
+      this.ripple?.releaseAll()
+      this.arp?.triggerRelease()
+    } catch { /* nodes may not exist yet */ }
     this._boot().then((ok) => {
       if (!ok || this.state !== 'playing') return
       this._startrun()
@@ -502,6 +515,31 @@ class LocalEngine {
         voice.triggerAttackRelease(plan.note, '32n', t, 0.3)
       } catch { /* a preview is optional — never break the UI */ }
     })
+  }
+
+  /** A short, one-shot phrase used by "hear summary" — never changes transport. */
+  playSummary(events) {
+    if (!Array.isArray(events) || !events.length) return false
+    if (this.state !== 'idle') return false
+    this._boot().then((ok) => {
+      if (!ok || this.state !== 'idle') return
+      try {
+        /* stop() may have faded the bus to silence. */
+        if (this.bus) this.bus.gain.rampTo(1, 0.05)
+        const t0 = this.Tone.now() + 0.08
+        for (const ev of events) {
+          if (!Number.isFinite(ev.midi)) continue
+          const voice = ev.rack === 'rain' ? this.pluck : ev.rack === 'wind' ? this.ripple : this.arp
+          voice.triggerAttackRelease(
+            midiToName(ev.midi),
+            Math.max(0.12, Number(ev.length) || 0.6),
+            t0 + Math.max(0, Number(ev.at) || 0),
+            clamp(ev.gain === undefined ? 0.2 : ev.gain, 0.02, 0.6),
+          )
+        }
+      } catch { /* a summary is optional — never break the UI */ }
+    })
+    return true
   }
 
   _clearTimer() {
@@ -588,11 +626,17 @@ class LocalEngine {
   _scheduleCurrent() {
     if (this.state !== 'playing' || !this.ready) return
     if (this.position >= this.steps.length) {
-      this.state = 'idle'
-      this.position = 0
-      this._fadeBus(0.5)
-      if (this.onend) this.onend()
-      return
+      /* Ambient mode is a background bed: it loops rather than ending, so a
+         blind listener can leave it running without restarting it. */
+      if (this.soundMode === 'ambient' && this.steps.length) {
+        this.position = 0
+      } else {
+        this.state = 'idle'
+        this.position = 0
+        this._fadeBus(0.5)
+        if (this.onend) this.onend()
+        return
+      }
     }
 
     const entries = this._plansAt(this.position)
@@ -612,7 +656,11 @@ class LocalEngine {
       if (!plan || plan.missing) continue
       const id = layer.variable.id
       try {
-        if (id === 'T2M') this._temperature(t, duration, plan, layer)
+        if (this.soundMode === 'ambient') {
+          if (id === 'T2M') this._ambientTemperature(t, duration, plan, layer)
+          else if (id === 'PRECTOTCORR') this._ambientRain(t, duration, plan, layer)
+          else if (id === 'WS10M') this._ambientWind(t, duration, plan, layer)
+        } else if (id === 'T2M') this._temperature(t, duration, plan, layer)
         else if (id === 'PRECTOTCORR') this._rain(t, duration, plan, layer)
         else if (id === 'WS10M') this._wind(t, duration, plan)
       } catch { /* one missed layer must never stop the run */ }
@@ -734,6 +782,54 @@ class LocalEngine {
     /* deterministic, gently uneven pattern — no allocation, like qoder V2 */
     return Math.abs(Math.sin((step + 1) * 12.9898) * 43758.5453) % 1
   }
+
+  /* ---------------- ambient voices ----------------
+     Pitch is fixed; the value is heard as presence. These voices never call
+     _harmony or quantize, so no note can drift with the data. */
+
+  _ambientTemperature(t, duration, plan) {
+    const a = ambientPlan(plan, { id: 'T2M' })
+    if (this.tempRack) this.tempRack.filter.frequency.rampTo(clamp(a.filter + 500, 300, 3400), 0.9)
+    /* One fixed D chord, attacked once — the tonal centre never moves. */
+    if (!this._padNotes) this._attackPad(['D2', 'A2', 'D3'], t, 0.2)
+    this.airFilter.frequency.rampTo(a.filter, 0.9)
+    this.airGain.gain.rampTo(Math.max(0.0001, a.level), 0.9)
+    if (this.position % 3 === 0) {
+      this.arp.triggerAttackRelease('D4', Math.min(duration * 0.5, 0.9), t, clamp(a.markerGain, 0.03, 0.28))
+    }
+    if (a.accent > 0.55 && this.position % 6 === 0) {
+      this.arp.triggerAttackRelease('A3', Math.min(duration * 0.8, 1.4), t + duration * 0.5, clamp(a.accentGain, 0.05, 0.3))
+    }
+    if (this.position % 4 === 0) {
+      this.tempBass.triggerAttackRelease('D2', Math.min(duration * 1.8, 3.2), t, 0.08 + a.level)
+    }
+  }
+
+  _ambientRain(t, duration, plan) {
+    const a = ambientPlan(plan, { id: 'PRECTOTCORR' })
+    if (this.rainRack) this.rainRack.filter.frequency.rampTo(clamp(a.filter + 400, 400, 3200), 0.9)
+    this.rainNoiseFilter.frequency.rampTo(a.filter, 0.9)
+    this.rainNoiseGain.gain.rampTo(Math.max(0.0001, a.level * 1.6), 0.9)
+    if (this.position % 2 === 0) {
+      const note = this.position % 4 === 0 ? 'G4' : 'D5'
+      this.pluck.triggerAttackRelease(note, '8n', t, clamp(0.07 + a.level * 1.6, 0.06, 0.3))
+    }
+    if (a.accent > 0.66 && this.position % 6 === 3) {
+      this.rainBass.triggerAttackRelease('G2', Math.min(duration * 1.8, 3.2), t, 0.14)
+    }
+  }
+
+  _ambientWind(t, duration, plan) {
+    const a = ambientPlan(plan, { id: 'WS10M' })
+    this.droneA.frequency.rampTo(73.42, 1.1)
+    this.droneB.frequency.rampTo(110, 1.1)
+    this.droneGain.gain.rampTo(Math.max(0.0001, a.level * 2.2), 1.1)
+    this.windNoiseFilter.frequency.rampTo(a.filter, 1.1)
+    this.windNoiseGain.gain.rampTo(Math.max(0.0001, a.level * 1.2), 1.1)
+    if (this.position % 8 === 0) {
+      this.ripple.triggerAttackRelease('D3', Math.min(duration * 1.4, 2.4), t, 0.12)
+    }
+  }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -769,6 +865,7 @@ class SonificationEngine {
     this._scoreMeta = null
 
     this._active = 'local' // local | player
+    this._soundMode = 'analysis' // analysis | ambient
     this._imageActive = false
     this._imageEndHandler = null
     this._playToken = 0
@@ -830,7 +927,12 @@ class SonificationEngine {
   }
 
   get source() {
-    return this._active === 'player' ? 'score' : 'local'
+    if (this._active === 'player') return 'score'
+    return this._soundMode === 'ambient' ? 'ambient' : 'local'
+  }
+
+  get soundMode() {
+    return this._soundMode
   }
 
   get imageActive() {
@@ -948,6 +1050,14 @@ class SonificationEngine {
        the data transport is unavailable. */
     if (this.imageActive) return false
 
+    /* Ambient mode always uses the local bed. A backend score is an analysis
+       composition and would contradict the fixed-pitch listening mode. */
+    if (this._soundMode === 'ambient') {
+      this._active = 'local'
+      this.local.play()
+      return true
+    }
+
     const payload = this._scorePayload
     const token = (this._playToken += 1)
 
@@ -1022,6 +1132,18 @@ class SonificationEngine {
     this.local.setLayers(layers)
   }
 
+  setSoundMode(mode) {
+    this._soundMode = mode === 'ambient' ? 'ambient' : 'analysis'
+    this.local.setSoundMode(this._soundMode)
+  }
+
+  /** A short one-shot phrase for "hear summary"; transport stays idle. */
+  playSummary(events) {
+    if (this.imageActive) return false
+    if (this.state !== 'idle') return false
+    return this.local.playSummary(events)
+  }
+
   /** A single soft note for graph hover/focus sonification. */
   previewPoint(plan) {
     if (!plan || plan.missing || !plan.note) return
@@ -1094,6 +1216,7 @@ class SonificationEngine {
     this._scoreKey = null
     this._config = null
     this._active = 'local'
+    this._soundMode = 'analysis'
     this._imageActive = false
     this._imageEndHandler = null
     this._oncaption = null

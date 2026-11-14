@@ -125,6 +125,18 @@ export function usePreviewKeys() {
         dispatch({ type: 'SET_SETTING', key: 'captionsVisible', value: !state.settings.captionsVisible })
         return
       }
+      if (key === 'm') {
+        if (native && target.closest('input, select, textarea')) return
+        e.preventDefault()
+        actions.setSoundMode(state.settings.soundMode === 'ambient' ? 'analysis' : 'ambient')
+        return
+      }
+      if (key === 's') {
+        if (native && target.closest('input, select, textarea')) return
+        e.preventDefault()
+        actions.playSummary()
+        return
+      }
       if (key === 't') {
         if (native) return
         const opening = !state.transcriptOpen
@@ -148,6 +160,8 @@ export function usePreviewKeys() {
 /** Shortcut list shared by the drawer and the guide, so they cannot drift. */
 export const SHORTCUTS = [
   ['Space', 'Play, pause or resume'],
+  ['S', 'Hear a summary of this selection'],
+  ['M', 'Switch analysis and ambient listening'],
   ['← / →', 'Step back or forward in time'],
   ['↑ / ↓', 'Volume up or down by 10%'],
   ['C', 'Show or hide captions'],

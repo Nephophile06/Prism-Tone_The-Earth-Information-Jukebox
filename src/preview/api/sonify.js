@@ -225,7 +225,7 @@ export async function fetchImageScore({ file, imageUrl, options, signal } = {}) 
   const problem = usingFile ? validateImageFile(file) : validateImageUrl(imageUrl)
   if (problem) return { ok: false, aborted: false, kind: 'invalid', message: problem }
 
-  // 1. Pure client-side default: run browser-native HTML5 Canvas + OpenCV computer vision sonification directly
+  // 1. Pure client-side default: run browser-native HTML5 Canvas sonification directly
   if (!import.meta.env.VITE_PREVIEW_API) {
     return await sonifyImageClient({ file, imageUrl, options })
   }

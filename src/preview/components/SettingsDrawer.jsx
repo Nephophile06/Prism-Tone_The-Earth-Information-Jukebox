@@ -153,6 +153,31 @@ export default function SettingsDrawer() {
             <h3 id="pt-sound-title" className="font-stencil text-[12px] uppercase tracking-[0.2em] text-beige">
               Sound
             </h3>
+
+            <fieldset className="mt-3 border border-ivory/15 p-3.5">
+              <legend className="px-1 font-ui text-[14px] text-ivory">Listening mode</legend>
+              <div className="mt-1 flex flex-wrap gap-2" role="group" aria-label="Listening mode">
+                {[['analysis', 'Analysis'], ['ambient', 'Ambient']].map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={(settings.soundMode || 'analysis') === id}
+                    onClick={() => actions.setSoundMode(id)}
+                    className={`min-w-[92px] border px-3 py-2 font-data text-[14px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory ${(settings.soundMode || 'analysis') === id
+                      ? 'border-ivory/70 bg-ivory/15 text-ivory'
+                      : 'border-ivory/20 text-cream hover:border-ivory/45'
+                      }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 font-ui text-[13px] leading-relaxed text-beige">
+                Analysis maps every value to pitch for close listening. Ambient keeps one fixed pitch and lets
+                loudness and texture follow the data, then loops as a background bed — easier to leave running.
+              </p>
+            </fieldset>
+
             <ToggleRow
               label="Sounding on graph hover"
               hint="A single soft note when you hover or focus a point on the series graph. Never during playback."

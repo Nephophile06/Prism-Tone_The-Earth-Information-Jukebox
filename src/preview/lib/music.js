@@ -55,6 +55,10 @@ const VOICES = {
 
 const DEFAULT_VOICE = { rootMidi: 50, bpm: 72, rack: 'temperature' }
 
+export function voiceFor(variable) {
+  return VOICES[variable && variable.id] || DEFAULT_VOICE
+}
+
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo))
 
 export function midiToName(midi) {
@@ -249,6 +253,78 @@ export function planForStep({ variable, step, normal, range, prevValue }) {
     speedWord: speedWord(tempo, voice.bpm),
     brightnessWord: bright > 0.58 ? 'bright' : bright < 0.42 ? 'dark' : 'balanced',
   }
+}
+
+/**
+ * Ambient listening — the second listening mode.
+ *
+ * The Naviton trials (Archives of Acoustics, 2016) reported that continuous
+ * month-by-month sonification becomes tiring on long walks, and that testers
+ * asked for a mostly-silent travel mode alongside a detailed imaging mode.
+ * Susurrus (CHI 2023) found loudness a reliable carrier of trends and natural
+ * sounds pleasant to live with.
+ *
+ * Ambient mode therefore keeps pitch fixed (one marker pitch, one accent
+ * pitch) and encodes the value as presence: loudness and filter brightness.
+ * It loops instead of stopping, so it can be left running as a background
+ * bed. No pitch is mapped continuously, so no pitch training is required.
+ * The analysis mode remains the default and keeps the full mapping.
+ */
+const AMBIENT_VOICES = {
+  T2M: { label: 'air band', level: [0.01, 0.06], filter: [420, 1150], marker: 62, accent: 57 },
+  PRECTOTCORR: { label: 'rain wash', level: [0.008, 0.075], filter: [700, 2600], marker: 67, accent: 55 },
+  WS10M: { label: 'wind bed', level: [0.03, 0.13], filter: [300, 1500], marker: 50, accent: 38 },
+}
+
+export function ambientPlan(plan, variable) {
+  const voice = AMBIENT_VOICES[variable && variable.id] || AMBIENT_VOICES.T2M
+  if (!plan || plan.missing || plan.norm === null || plan.norm === undefined) {
+    return {
+      missing: true,
+      label: voice.label,
+      level: 0.0001,
+      filter: voice.filter[0],
+      accent: 0,
+      markerMidi: voice.marker,
+      accentMidi: voice.accent,
+      markerGain: 0.0001,
+      accentGain: 0.0001,
+    }
+  }
+  const norm = clamp01(plan.norm)
+  const level = voice.level[0] + norm * (voice.level[1] - voice.level[0])
+  const filter = Math.round(voice.filter[0] + norm * (voice.filter[1] - voice.filter[0]))
+  const accent = clamp01(Math.abs(plan.score) / 3)
+  return {
+    missing: false,
+    label: voice.label,
+    level,
+    filter,
+    accent,
+    markerMidi: voice.marker,
+    accentMidi: voice.accent,
+    markerGain: 0.06 + level * 0.9,
+    accentGain: 0.1 + accent * 0.2,
+  }
+}
+
+/** Plain-language sentence about what ambient mode is doing this month. */
+export function describeAmbientSound(plan, variable) {
+  if (!plan || plan.missing) {
+    return 'Ambient mode keeps the background at its quiet floor this month — no value, so nothing is added.'
+  }
+  const a = ambientPlan(plan, variable)
+  const presence = plan.norm > 0.72 ? 'clearly present' : plan.norm > 0.35 ? 'moderate' : 'quiet'
+  const accent = a.accent > 0.66
+    ? ' A large anomaly adds one fixed accent note — never a higher pitch.'
+    : ''
+  if (variable.id === 'T2M') {
+    return `Ambient mode holds one fixed pitch and hears warmth as a ${presence} band of filtered air at ${a.filter} Hz, with a soft D marker every third month.${accent}`
+  }
+  if (variable.id === 'PRECTOTCORR') {
+    return `Ambient mode holds fixed marimba pitches and hears rain as a ${presence} wash; heavier rain makes the wash louder, not higher.${accent}`
+  }
+  return `Ambient mode holds a fixed drone and hears wind as a ${presence} filtered bed; stronger wind raises the volume, never the pitch.${accent}`
 }
 
 /** The audible layers, described for the Notes view and mapping diagram. */

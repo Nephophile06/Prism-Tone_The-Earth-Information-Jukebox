@@ -20,7 +20,7 @@ const GUIDE_STEPS = [
   ],
   [
     'Play and hear the data',
-    'Press the Play button to start sonification. Atmospheric values are turned into musical harmony in real-time, accompanied by clear captions explaining the numbers and sounds.'
+    'Press the Play button to start sonification. Atmospheric values are turned into musical harmony in real-time, accompanied by clear captions explaining the numbers and sounds. For a quick gist first, choose “Hear summary” in the Data summary panel.'
   ],
   [
     'Inspect graphs and trends',
@@ -28,7 +28,7 @@ const GUIDE_STEPS = [
   ],
   [
     'Personalize your view',
-    'Open “DISPLAY” in the top menu to adjust caption text sizes, sound on hover, and haptics. Your preferences are saved automatically in your browser.'
+    'Open “DISPLAY” in the top menu to choose an analysis or ambient listening mode, adjust caption text sizes, sound on hover, and haptics. Your preferences are saved automatically in your browser.'
   ],
 ]
 

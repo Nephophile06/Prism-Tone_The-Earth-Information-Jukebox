@@ -10,6 +10,7 @@ export const DEFAULT_SETTINGS = {
   reduceMotion: false,
   haptics: false,
   hoverSonify: true,
+  soundMode: 'analysis', // analysis | ambient
 }
 
 export const CAPTION_SIZES = {
@@ -19,10 +20,29 @@ export const CAPTION_SIZES = {
   xl: { px: 28, label: 'XL' },
 }
 
+function prefers(query) {
+  try {
+    return typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia(query).matches
+      : false
+  } catch {
+    return false
+  }
+}
+
 export function loadSettings() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return { ...DEFAULT_SETTINGS }
+    if (!raw) {
+      // No stored choice yet: honour the operating system's accessibility
+      // settings, because the preview's contrast and motion preferences are
+      // otherwise only reachable from the settings drawer.
+      return {
+        ...DEFAULT_SETTINGS,
+        reduceMotion: prefers('(prefers-reduced-motion: reduce)'),
+        highContrast: prefers('(prefers-contrast: more)'),
+      }
+    }
     const parsed = JSON.parse(raw)
     return {
       ...DEFAULT_SETTINGS,

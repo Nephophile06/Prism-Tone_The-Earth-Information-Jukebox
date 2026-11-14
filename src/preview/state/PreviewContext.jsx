@@ -40,6 +40,7 @@ import {
   normalsFor,
 } from '../lib/captions'
 import { engine } from '../lib/sonify'
+import { buildSelectionSummary } from '../lib/summary'
 import { DEFAULT_SETTINGS, CAPTION_SIZES, loadSettings, saveSettings, shouldOpenGuide } from '../lib/settings'
 import { LIVE_VARIABLES, VARIABLE_BY_ID, YEAR_MIN, YEAR_MAX } from '../data/datasets'
 import { REGION_BY_ID, DIVISION_BY_ID, GEOJSON_URL } from '../data/world'
@@ -206,6 +207,7 @@ function idleSelectionFor(state) {
   const range = rangeOf(seriesMap)
   const scopeName = scopeNameFor(state)
   const scopeKind = state.scope.type
+  const soundMode = (state.settings && state.settings.soundMode) || 'analysis'
 
   if (state.timeMode === 'range') {
     return normalizeCaption(describeRange({
@@ -216,11 +218,15 @@ function idleSelectionFor(state) {
       scopeName,
       scopeKind,
       range,
+      soundMode,
     }))
   }
 
   const key = monthKey(state.year, state.month)
-  const scoreReady = state.score && state.score.status === 'ready' && state.score.scaleLabel
+  const scoreReady = soundMode !== 'ambient'
+    && state.score
+    && state.score.status === 'ready'
+    && state.score.scaleLabel
   return normalizeCaption(describeStep({
     variable,
     step: { key, value: getMonthly(seriesMap, state.year, state.month) },
@@ -231,10 +237,11 @@ function idleSelectionFor(state) {
     range,
     prevValue: previousValue(seriesMap, key),
     /* Idle text must agree with the score that will play next: one key/scale,
-       no local per-month mode change. */
+       no local per-month mode change. Ambient mode never uses that score. */
     scoreMeta: scoreReady
       ? { scaleLabel: state.score.scaleLabel, tempo: state.score.tempo }
       : null,
+    soundMode,
   }))
 }
 
@@ -242,6 +249,7 @@ function stepCaptionFor(state, step, score) {
   const variable = VARIABLE_BY_ID[state.variableId]
   const seriesMap = currentSeriesMap(state)
   const range = rangeOf(seriesMap)
+  const soundMode = (state.settings && state.settings.soundMode) || 'analysis'
   return normalizeCaption(describeStep({
     variable,
     step,
@@ -253,8 +261,9 @@ function stepCaptionFor(state, step, score) {
     prevValue: previousValue(seriesMap, step && step.key),
     /* The score supplies the musical clause only; the value and comparison
        above always come from the loaded series. */
-    scoreCaption: score ? score.scoreCaption : null,
-    scoreMeta: score ? score.scoreMeta : null,
+    scoreCaption: score && soundMode !== 'ambient' ? score.scoreCaption : null,
+    scoreMeta: score && soundMode !== 'ambient' ? score.scoreMeta : null,
+    soundMode,
   }))
 }
 
@@ -491,6 +500,7 @@ function reducer(state, action) {
         scopeKind: next.scope.type,
         hasData: true,
         ready: next.data.status === 'ready',
+        soundMode: (next.settings && next.settings.soundMode) || 'analysis',
       }), cls: 'interpretation' } }
     }
     case 'STOP_SELECTION_CHANGED': {
@@ -563,6 +573,13 @@ export function PreviewProvider({ children }) {
   const playStateRef = useRef(state.playState)
   const dataStatusRef = useRef(state.data.status)
   const pendingRefreshRef = useRef(null)
+  const stateRef = useRef(state)
+  const seriesMapRef = useRef(null)
+  const stepsRef = useRef([])
+
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
 
   useEffect(() => {
     settingsRef.current = state.settings
@@ -738,6 +755,11 @@ export function PreviewProvider({ children }) {
     state.range.endYear,
   ])
 
+  useEffect(() => {
+    seriesMapRef.current = seriesMap
+    stepsRef.current = steps
+  }, [seriesMap, steps])
+
   const mappingRange = useMemo(() => rangeOf(seriesMap), [seriesMap])
   const normalByMonth = useMemo(() => normalsFor(seriesMap), [seriesMap])
 
@@ -871,6 +893,25 @@ export function PreviewProvider({ children }) {
       })
     }
 
+    /* Ambient listening is a fixed-pitch bed by design; a backend score would
+       contradict it, so the score service is not consulted in this mode. */
+    if (state.settings && state.settings.soundMode === 'ambient') {
+      engine.setScore(null, scoreKey)
+      dispatch({
+        type: 'SCORE_STATUS',
+        patch: {
+          status: 'local',
+          available: false,
+          source: 'ambient',
+          scaleLabel: '',
+          tempo: null,
+          beatsPerStep: 2,
+          message: 'Ambient listening — the local ambient bed plays; no score is requested.',
+        },
+      })
+      return undefined
+    }
+
     if (!scoreVariables.length || !Object.keys(scoreSeries).length) {
       noScore(state.timeMode === 'month'
         ? 'Local mapping — a single month is too short to score.'
@@ -961,7 +1002,7 @@ export function PreviewProvider({ children }) {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scoreKey, state.data.status, state.playState, scoreVariables, scoreSeries, state.timeMode])
+  }, [scoreKey, state.data.status, state.playState, scoreVariables, scoreSeries, state.timeMode, state.settings.soundMode])
 
   useEffect(() => {
     engine.onstep = (index, step) => {
@@ -1022,6 +1063,9 @@ export function PreviewProvider({ children }) {
   useEffect(() => {
     engine.setLayers(state.layers)
   }, [state.layers])
+  useEffect(() => {
+    engine.setSoundMode((state.settings && state.settings.soundMode) || 'analysis')
+  }, [state.settings.soundMode])
 
   /* ---- transport actions ---- */
   const actions = useMemo(
@@ -1071,6 +1115,66 @@ export function PreviewProvider({ children }) {
         dispatch({ type: 'SEEK', index })
       },
       announce: (text) => dispatch({ type: 'ANNOUNCE', text }),
+      setSoundMode: (mode) => {
+        const next = mode === 'ambient' ? 'ambient' : 'analysis'
+        const current = stateRef.current
+        if (((current.settings && current.settings.soundMode) || 'analysis') === next) return
+        const sounding = current.playState !== 'idle' || engine.state !== 'idle'
+        if (sounding) {
+          engine.stop()
+          dispatch({ type: 'STOP' })
+        }
+        engine.setSoundMode(next)
+        dispatch({ type: 'SET_SETTING', key: 'soundMode', value: next })
+        dispatch({
+          type: 'ANNOUNCE',
+          text: next === 'ambient'
+            ? 'Ambient listening on. Pitch stays fixed; loudness and texture follow the data, and the bed loops. Press play to start.'
+            : 'Analysis listening on. Each value maps to pitch again. Press play to start.',
+        })
+      },
+      playSummary: () => {
+        if (engine.imageActive) {
+          dispatch({
+            type: 'ANNOUNCE',
+            text: 'An image score is playing. Stop it before hearing the summary.',
+          })
+          return
+        }
+        if (engine.state !== 'idle') {
+          dispatch({
+            type: 'ANNOUNCE',
+            text: 'Playback is running. Stop it before hearing the summary, so the two sounds never overlap.',
+          })
+          return
+        }
+        const current = stateRef.current
+        const currentVariable = VARIABLE_BY_ID[current.variableId]
+        const currentSeries = seriesMapRef.current
+        if (!currentVariable || !currentSeries) {
+          dispatch({ type: 'ANNOUNCE', text: 'The data is still loading, so no summary is available yet.' })
+          return
+        }
+        const summary = buildSelectionSummary({
+          state: current,
+          variable: currentVariable,
+          seriesMap: currentSeries,
+          steps: stepsRef.current,
+          scopeName: scopeNameFor(current),
+          scopeKind: current.scope.type,
+        })
+        if (!summary.notes.length) {
+          dispatch({ type: 'ANNOUNCE', text: summary.text })
+          return
+        }
+        const started = engine.playSummary(summary.notes)
+        dispatch({
+          type: 'ANNOUNCE',
+          text: started
+            ? summary.text
+            : 'The summary could not start. Stop any other audio and try again.',
+        })
+      },
     }),
     [],
   )

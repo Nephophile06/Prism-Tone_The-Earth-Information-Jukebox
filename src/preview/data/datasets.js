@@ -150,7 +150,7 @@ export const VARIABLES = [
     status: 'unavailable',
     cadence: null,
     unavailableReason:
-      'NASA FIRMS requires a personal MAP_KEY. The project backend can hold that key and proxy FIRMS, but no key is configured in this build, and the cached hotspot file covers only 12 months of 2025 with no continent attribution. Showing a partial year as a global fire layer would mislead, so this category stays off until a complete, attributable series is available.',
+      'NASA FIRMS requires a personal MAP_KEY. A server proxy could hold that key, but no proxy or key is configured in this build, and the cached hotspot file covers only 12 months of 2025 with no continent attribution. Showing a partial year as a global fire layer would mislead, so this category stays off until a complete, attributable series is available.',
     description:
       'Fire detections and fire radiative power (VIIRS / MODIS) would drive percussive events: each detection a strike, radiative power its intensity.',
   },
@@ -173,7 +173,7 @@ export const VARIABLES = [
     status: 'unavailable',
     cadence: null,
     unavailableReason:
-      'GRACE / GRACE-FO mascon data has no keyless public API endpoint suitable for direct browser use. Bangladesh has no local ice measurements — polar ice variables are scientifically meaningless here — so this slot remains a clearly-labelled gap rather than a disguised substitute.',
+      'GRACE / GRACE-FO mascon data has no keyless public API endpoint suitable for direct browser use, and no checked-in gridded series covers all seven sample regions. Rather than pass an incomplete or fabricated layer off as global water storage, this slot stays off.',
     description:
       'Terrestrial water storage anomaly (GRACE-FO) would drive a low-frequency layer: deeper negative anomaly → lower, quieter bass; positive → fuller low end.',
   },
@@ -196,7 +196,7 @@ export const VARIABLES = [
     status: 'unavailable',
     cadence: null,
     unavailableReason:
-      'MODIS NDVI/EVI products are served through NASA Earthdata, which requires OAuth login — there is no anonymous endpoint. The project backend does carry an NDVI dataset, but it covers Bangladesh divisions rather than the seven continental samples used here. Rather than pass a regional index off as a planetary one, this slot stays off.',
+      'MODIS NDVI/EVI products are served through NASA Earthdata, which requires OAuth login — there is no anonymous endpoint. A legacy local NDVI file covers Bangladesh divisions only, not the seven continental samples used here. Rather than pass a regional index off as a planetary one, this slot stays off.',
     description:
       'A vegetation index (MODIS NDVI/EVI) would drive harmonic texture: denser canopy → richer overtone stack; sparse or stressed vegetation → a thinner, reedier timbre.',
   },

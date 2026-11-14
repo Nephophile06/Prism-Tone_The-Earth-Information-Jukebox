@@ -21,6 +21,34 @@ export const GRID_W = 96
 export const GRID_H = 54
 export const STEP_BEATS = 0.5
 
+/**
+ * Resolve a scale from a profile id, a bare id, or a "D Dorian" style label.
+ * Live preset scoring passes `${key} ${scale}` (e.g. "G major pentatonic"),
+ * so the key prefix and spaces must never be treated as part of the scale id.
+ */
+function resolveScale(scaleName) {
+  const words = String(scaleName || '').toLowerCase().replace(/[^a-z]/g, '')
+  if (words.includes('phrygian')) return SCALES.phrygian
+  if (words.includes('dorian')) return SCALES.dorian
+  if (words.includes('pentatonic')) {
+    return words.includes('minor') ? SCALES.minorPentatonic : SCALES.majorPentatonic
+  }
+  if (words.includes('minor')) return SCALES.minor
+  if (words.includes('major')) return SCALES.major
+  return SCALES.dorian
+}
+
+/** Root MIDI for a key name, using D3 (50) as the reference register. */
+function rootMidiForKey(keyName, baseRegister = 0) {
+  const raw = String(keyName || '').trim()
+  const flat = /^([A-G])b$/i.exec(raw)
+  const flatMap = { C: 'B', D: 'C#', E: 'D#', F: 'E', G: 'F#', A: 'G#', B: 'A#' }
+  const index = flat
+    ? NOTE_NAMES.indexOf(flatMap[flat[1].toUpperCase()])
+    : NOTE_NAMES.indexOf(raw)
+  return 50 + (index >= 0 ? index - 2 : 0) + baseRegister
+}
+
 export const IMAGE_PROFILES = {
   'night-lights': {
     label: 'Night-light illuminance',
@@ -411,10 +439,8 @@ export function buildScoreFromAnalysis(gridData, profileKey = 'default', options
   const tempoBpm = options.tempo || profile.tempo || 68
   const baseRegister = (profile.register || 0)
 
-  const scaleId = scaleName.replace(/\s+/g, '')
-  const scaleDef = SCALES[scaleId] || SCALES.dorian
-  const rootIndex = NOTE_NAMES.indexOf(keyName.replace(/b/i, '#'))
-  const rootMidi = 50 + (rootIndex >= 0 ? rootIndex - 2 : 0) + baseRegister
+  const scaleDef = resolveScale(scaleName)
+  const rootMidi = rootMidiForKey(keyName, baseRegister)
 
   const notesScale = scaleMidi(scaleDef.id, rootMidi, 3)
 
@@ -663,7 +689,7 @@ export function buildScoreFromAnalysis(gridData, profileKey = 'default', options
   ]
 
   const captions = [
-    { t_beats: 0, text: `Starting sonification: ${profile.label} in ${keyName} ${scaleName}.` },
+    { t_beats: 0, text: `Starting sonification: ${profile.label} in ${keyName} ${scaleDef.label}.` },
     { t_beats: 16, text: `Mid-scan dynamic range: ${profile.rise}.` },
     { t_beats: 32, text: `Contrast profile: ${profile.visual}.` },
   ]
@@ -671,7 +697,7 @@ export function buildScoreFromAnalysis(gridData, profileKey = 'default', options
   const musicalScore = {
     version: SCORE_VERSION,
     key: keyName,
-    scale: scaleName,
+    scale: scaleDef.label,
     tempo_bpm: tempoBpm,
     tracks,
     captions,
@@ -737,13 +763,14 @@ export async function sonifyImageClient({ file, imageUrl, options = {} }) {
 /**
  * Builds a multi-frame temporal MusicalScore from sampled video frames.
  */
-function buildVideoScoreFromFrames(frames, options = {}) {
+export function buildVideoScoreFromFrames(frames, options = {}) {
   const profileKey = options.profile || 'ocean-thermal'
   const profile = IMAGE_PROFILES[profileKey] || IMAGE_PROFILES['ocean-thermal']
   const keyName = options.key || profile.key || 'D'
-  const scaleName = options.scale ? options.scale.split(' ')[1] || 'dorian' : profile.scale || 'dorian'
+  const scaleName = options.scale || profile.scale || 'dorian'
   const tempoBpm = profile.tempo || 72
-  const notesScale = scaleMidi(keyName, scaleName, 4, 3)
+  const scaleDef = resolveScale(scaleName)
+  const notesScale = scaleMidi(scaleDef.id, rootMidiForKey(keyName, profile.register || 0), 3)
 
   const leadNotes = []
   const padNotes = []
@@ -896,7 +923,7 @@ function buildVideoScoreFromFrames(frames, options = {}) {
   return {
     version: SCORE_VERSION,
     key: keyName,
-    scale: scaleName,
+    scale: scaleDef.label,
     tempo_bpm: tempoBpm,
     tracks,
     captions,
@@ -1062,20 +1089,24 @@ export async function sonifyVideoClient({ file, videoUrl, options = {} }) {
     }
 
     if (corsBlocked || frames.length === 0) {
-      // Server does not send Access-Control-Allow-Origin for canvas reading
+      // The server does not expose pixels to canvas (CORS) — play an
+      // illustrative score, but never present it as a measurement.
       const fallbackScore = buildSyntheticVideoScore(options)
       return {
         ok: true,
+        fallback: true,
+        synthetic: true,
         musical_score: fallbackScore,
         score: fallbackScore,
         source: { kind: 'video', id: file ? file.name : videoUrl },
         analysis: {
-          frames_sampled: 12,
+          frames_sampled: 0,
           duration_sec: duration,
           mean_luminance: 0.45,
           mean_saturation: 0.52,
           scan: options.scan || 'columns',
-          notice: 'Adaptive video sonification generated. For pixel-exact offline analysis, choose a local MP4 file.',
+          synthetic: true,
+          notice: 'Frame pixels were blocked by CORS, so this is an illustrative fallback pattern, not a measurement of the video. Download the clip and upload it locally for a real analysis.',
         },
       }
     }
@@ -1098,19 +1129,24 @@ export async function sonifyVideoClient({ file, videoUrl, options = {} }) {
     if (createdBlobUrl) {
       URL.revokeObjectURL(createdBlobUrl)
     }
-    // As fail-safe, generate an adaptive score so the user never gets an unhandled failure
+    // Fail-safe: keep the transport playable, but label the result as
+    // illustrative rather than letting a decode failure masquerade as analysis.
     const fallbackScore = buildSyntheticVideoScore(options)
     return {
       ok: true,
+      fallback: true,
+      synthetic: true,
       musical_score: fallbackScore,
       score: fallbackScore,
       source: { kind: 'video', id: file ? file.name : videoUrl },
       analysis: {
-        frames_sampled: 12,
+        frames_sampled: 0,
         duration_sec: 12,
         mean_luminance: 0.45,
         mean_saturation: 0.5,
         scan: options.scan || 'columns',
+        synthetic: true,
+        notice: 'The clip could not be decoded for pixel analysis, so this is an illustrative fallback pattern, not a measurement of the video.',
       },
     }
   }

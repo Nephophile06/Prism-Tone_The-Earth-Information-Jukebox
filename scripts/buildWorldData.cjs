@@ -142,7 +142,15 @@ async function buildBaselineData() {
     } catch (e) {
       console.warn(`NASA POWER live fetch for ${c.name} timed out or failed (${e.message}), using calibrated ERA5/NASA baseline.`);
       series[c.id] = generateContinentClimate(c.id);
-      outcomes[c.id] = { ok: true, status: 200, calibrated: true, points: Object.keys(series[c.id].T2M).length };
+      outcomes[c.id] = {
+        ok: false,
+        synthetic: true,
+        error: {
+          kind: 'synthetic_fallback',
+          message: 'POWER fetch failed; this series is modelled, not measured. Do not present it as NASA POWER data.',
+        },
+        points: Object.keys(series[c.id].T2M).length,
+      };
     }
   }
 

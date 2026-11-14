@@ -6,7 +6,7 @@
  *
  * Features:
  *  - 10 Curated Official NASA SVS / EIC Datasets with pre-calibrated scientific color ramps
- *  - Instant zero-latency precomputed playback + live OpenCV backend scoring
+ *  - Instant zero-latency precomputed playback + live in-browser Canvas scoring
  *  - Real-time animated scanning playhead overlay (Columns sweep, Radial ripple, Regions grid)
  *  - Scientific color legend display with physical variable stops
  *  - Custom user image upload (PNG/JPEG) and remote URL scoring
@@ -73,6 +73,28 @@ const CATEGORIES = [
   'Extreme Atmospheric Energy',
   'Human & Planetary Dynamics',
 ]
+
+/* The gallery filters use these five stable groups. Every preset category
+   belongs to exactly one group, so no frame can disappear behind a pill. */
+const CATEGORY_GROUPS = {
+  'Oceans & Thermal Dynamics': [
+    'Oceans & Thermal Dynamics',
+    'Oceans & Hydrodynamics',
+    'Hydrology & Extreme Weather',
+  ],
+  'Atmosphere & Particulates': [
+    'Atmosphere & Multi-Track Transport',
+    'Atmospheric Chemistry & Climate',
+    'Atmosphere & Public Health',
+    'Atmosphere & Particulates',
+  ],
+  'Biosphere & Carbon Sinks': ['Biosphere & Carbon Sinks'],
+  'Extreme Atmospheric Energy': ['Extreme Atmospheric Energy'],
+  'Human & Planetary Dynamics': [
+    'Human & Planetary Dynamics',
+    'Astronomical Conceptual Benchmark',
+  ],
+}
 
 const fmt = (value, digits = 3) => (
   Number.isFinite(value) ? Number(value).toFixed(digits) : '—'
@@ -170,7 +192,7 @@ export default function ImagePanel() {
   // Filtered EIC presets
   const filteredPresets = selectedCategory === 'All'
     ? EIC_PRESETS
-    : EIC_PRESETS.filter((p) => p.category === selectedCategory || p.category.includes(selectedCategory))
+    : EIC_PRESETS.filter((p) => (CATEGORY_GROUPS[selectedCategory] || [selectedCategory]).includes(p.category))
 
   const playing = state.imagePlaying
   const canListen = activeTab === 'eic'
@@ -270,7 +292,7 @@ export default function ImagePanel() {
     setResult(null)
     actions.announce(
       next
-        ? 'Live scoring selected. The next play sends this frame to the OpenCV API and falls back to the checked-in score if it is unavailable.'
+        ? 'Live scoring selected. The next play re-scores this frame in your browser and falls back to the checked-in score if analysis is unavailable.'
         : 'Checked-in precomputed scoring selected.',
     )
   }
@@ -387,7 +409,7 @@ export default function ImagePanel() {
     let scoreSource = null
 
     // Instant tier: the checked-in score, unless the user explicitly asked to
-    // re-score the published frame through the live OpenCV service.
+    // re-score the published frame through the live in-browser scorer.
     if (targetPreset && hasPrecomputed && !liveScore) {
       scoreEnvelope = {
         ok: true,
@@ -424,8 +446,10 @@ export default function ImagePanel() {
 
       if (controller.signal.aborted) return
       if (response.ok) {
-        scoreEnvelope = { ...response, live: true, video: true }
-        scoreSource = 'live'
+        const synthetic = Boolean(response.synthetic || response.analysis?.synthetic)
+        scoreEnvelope = { ...response, live: !synthetic, video: true }
+        scoreSource = synthetic ? 'synthetic' : 'live'
+        if (synthetic) setError(response.analysis?.notice || 'Frame pixels could not be read, so an illustrative fallback is playing.')
       } else {
         liveProblem = response.message || 'The video could not be scored.'
       }
@@ -481,10 +505,12 @@ export default function ImagePanel() {
     setStatus('playing')
     dispatch({ type: 'IMAGE_PLAYBACK', active: true })
     const sourceLabel = scoreSource === 'live'
-      ? (isVideo ? 'live OpenCV video score' : 'live OpenCV score')
-      : scoreSource === 'fallback'
-        ? 'checked-in score because live scoring was unavailable'
-        : 'curated precomputed score'
+      ? (isVideo ? 'live browser-vision video score' : 'live browser-vision score')
+      : scoreSource === 'synthetic'
+        ? 'illustrative fallback pattern because the video frames could not be read'
+        : scoreSource === 'fallback'
+          ? 'checked-in score because live scoring was unavailable'
+          : 'curated precomputed score'
     const sourceName = targetPreset
       ? targetPreset.name
       : isVideo
@@ -806,7 +832,7 @@ export default function ImagePanel() {
                       onChange={(event) => toggleLiveMode(event.target.checked)}
                       className="h-3 w-3 accent-[#d98c5f]"
                     />
-                    <span>Live OpenCV scoring</span>
+                    <span>Live browser-vision scoring</span>
                   </label>
                   <span className="text-beige">
                     {liveScore
@@ -841,7 +867,7 @@ export default function ImagePanel() {
               <div className="space-y-4">
                 <p className="font-ui text-[14px] leading-relaxed text-cream">
                   Upload an Earth observation frame or satellite photograph to sonify it through the exact same
-                  Tone.js and OpenCV computer-vision pipeline.
+                  Tone.js and browser-vision (Canvas + Sobel) pipeline.
                 </p>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -913,7 +939,7 @@ export default function ImagePanel() {
               <div className="space-y-4">
                 <p className="font-ui text-[14px] leading-relaxed text-cream">
                   Upload a short Earth-observation clip or point at an https video. The sonification engine samples up to
-                  twelve evenly spaced frames across the video, analyzes each frame directly in your browser using HTML5 Canvas & OpenCV computer vision algorithms, and generates a synchronized soundscape.
+                  twelve evenly spaced frames across the video, analyzes each frame directly in your browser using HTML5 Canvas and a Sobel edge detector, and generates a synchronized soundscape.
                 </p>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -1044,14 +1070,16 @@ export default function ImagePanel() {
               <p className="font-ui text-[12px] leading-snug text-beige">
                 {activeTab === 'eic'
                   ? result?.live
-                    ? 'Live OpenCV score computed for this frame'
+                    ? 'Live browser-vision score computed for this frame'
                     : result?.fallback
                       ? 'Live scoring unavailable — playing the checked-in score'
                       : liveScore
                         ? 'Live scoring selected · falls back to the checked-in score'
                         : 'Precomputed score checked in with the frame · no network needed'
                   : activeTab === 'video'
-                    ? 'Browser-native video sonification · 12 sampled frames via HTML5 Canvas & Tone.js'
+                    ? result?.analysis?.synthetic
+                      ? 'Frame access was blocked, so this is an illustrative fallback — not a measurement. Upload the clip locally for a real analysis.'
+                      : 'Browser-native video sonification · sampled frames via HTML5 Canvas & Tone.js'
                     : 'Browser-native computer vision sonification via HTML5 Canvas & Tone.js'}
               </p>
 
