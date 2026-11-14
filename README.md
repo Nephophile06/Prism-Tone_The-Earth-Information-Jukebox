@@ -204,22 +204,14 @@ Accessibility features will be validated as the product develops.
 
 ## Technology Stack
 
-### Frontend - Experience, Audio & Visualization
+### Client-Side Architecture & In-Browser Engine
 
-- **React + Vite** - Component-based frontend architecture and fast development
-- **Tailwind CSS** - Responsive and utility-first interface styling
-- **Motion for React** - Smooth transitions, scroll-based interactions, and cinematic animations
-- **Tone.js & Web Audio API** - Dynamic, data-driven sound synthesis and audio control
-- **HTML5 Canvas / SVG** - Lightweight scientific visualizations and animated data graphics
-- **WebGL / Spline** - Optional immersive 3D and Earth visualizations
-
-### Backend - Data Processing & APIs
-
-- **Python 3.10+** - Core data-processing language
-- **FastAPI** - Lightweight, high-performance API layer
-- **Pandas** - Data cleaning, transformation, and time-series processing
-- **NumPy** - Numerical operations and normalization
-- **Uvicorn** - ASGI server for the FastAPI backend
+- **Tone.js & Web Audio API** - Dynamic, zero-latency data-driven sound synthesis, musical scales, and polyphonic voice racks
+- **HTML5 Canvas Computer Vision** - Real-time frame analysis: ITU-R BT.709 Luminance, HSV color spaces, Sobel spatial gradients, and multi-mode scanning (columns, radial, regions)
+- **React + Vite** - High-performance modular frontend architecture and lightning-fast HMR
+- **Tailwind CSS** - Modern, responsive, and accessible user interface design
+- **Motion for React** - Smooth transitions, scroll-driven interactions, and interactive controls
+- **WebGL / Three.js** - Immersive 3D planetary rendering and dynamic audio-reactive visualizations
 
 ### NASA Data Ecosystem
 
@@ -239,47 +231,47 @@ Accessibility features will be validated as the product develops.
 ```mermaid
 graph TD
 
-subgraph NASA["NASA Earth Data Ecosystem"]
+subgraph NASA["NASA Earth Data & EIC Ecosystem"]
     A["NASA POWER API<br/>Temperature • Precipitation • Wind"]
     B["NASA FIRMS<br/>Active Fire • FRP"]
     C["MODIS / VIIRS<br/>Vegetation • NDVI"]
-    D["GRACE / GRACE-FO<br/>Water Storage"]
+    D["GRACE / GRACE-FO<br/>Water Storage Anomaly"]
+    EIC["EIC Visual Frames<br/>Night Lights • Currents • Aerosols • CO2"]
 end
 
-subgraph BACKEND["Backend — Python / FastAPI"]
-    E["Data Fetching Layer<br/>API Connectors"]
-    F["Data Cleaning & Validation<br/>Missing Values • Formatting"]
-    G["Spatial / Temporal Processing<br/>Location • Date Alignment"]
-    H["Normalization Engine<br/>Min-Max Scaling"]
-    I["Sonification Mapping Engine<br/>Earth Variables → Audio Parameters"]
+subgraph CLIENT["Client-Side Processing Engine (In-Browser)"]
+    E["Data Ingestion & Fallback Layer<br/>Direct NASA APIs • Bundled World Baseline"]
+    CV["Canvas Computer Vision Engine<br/>96×54 Grid • Luminance BT.709 • HSV • Sobel Edges"]
+    H["Normalization & Anomaly Engine<br/>Min-Max Scaling • Z-Score • Anomaly Detection"]
+    I["Sonification Mapping Engine<br/>Scientific Variables → Musical Parameters"]
 end
 
-subgraph FRONTEND["Frontend — React + Vite"]
-    J["Application State<br/>Data • Timeline • Layers"]
-    K["Earth Visualization<br/>Canvas • SVG • WebGL"]
-    L["Sonification Engine<br/>Tone.js + Web Audio API"]
-    M["Audio Visualization<br/>Waveform • Frequency"]
-    N["Interactive Controls<br/>Play • Pause • Timeline • Layers"]
-    O["Accessibility Layer<br/>Keyboard • Captions • Screen Reader"]
+subgraph UI["Interactive Earth Jukebox (React + Tone.js)"]
+    J["Application State<br/>Data • Timeline • Layer Mixer"]
+    K["Earth Visualization<br/>Three.js Canvas • SVG • Waveform"]
+    L["Audio Synthesis Engine<br/>Tone.js + Web Audio API • 5 Voice Racks"]
+    M["Waveform & Spectrum Visualizer<br/>Real-time Native AnalyserNode"]
+    N["Interactive Controls<br/>Play • Scrub • Preset Selector • Mute/Solo"]
+    O["Accessibility First Layer<br/>Screen Reader ARIA • Spoken Descriptions • High Contrast"]
 end
 
-subgraph OUTPUT["User Experience"]
+subgraph OUTPUT["Multimodal User Experience"]
     P(("Earth Visuals"))
-    Q(("Data-Driven Sound"))
-    R(("Accessible Experience"))
+    Q(("Data-Driven Symphonies"))
+    R(("Accessible Exploration"))
 end
 
 A --> E
 B --> E
 C --> E
 D --> E
+EIC --> CV
 
-E --> F
-F --> G
-G --> H
+E --> H
+CV --> I
 H --> I
 
-I -->|"Processed Data + Mapping Parameters"| J
+I -->|"Musical Scores & Parameters"| J
 
 J --> K
 J --> L
@@ -292,13 +284,13 @@ M --> Q
 K --> P
 O --> R
 
-N -.->|"User Controls"| J
+N -.->|"User Interactions"| J
 
-I -->|"Temperature → Pitch"| L
-I -->|"Precipitation → Rhythm"| L
-I -->|"Fire Activity → Percussion"| L
-I -->|"Water Storage → Bass"| L
-I -->|"Vegetation → Harmonic Texture"| L
+I -->|"Temperature → Rising Pitch"| L
+I -->|"Precipitation → Rhythmic Density"| L
+I -->|"Active Fire → Percussion Spikes"| L
+I -->|"Water Storage → Deep Sub-Bass"| L
+I -->|"Vegetation → Lush Harmonic Pad"| L
 ```
 
 ### Architecture Flow
@@ -408,112 +400,79 @@ The planned repository structure is:
 ```text
 PrismTone/
 │
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── sections/
-│   │   ├── audio/
-│   │   ├── visualization/
-│   │   ├── hooks/
-│   │   ├── data/
-│   │   └── styles/
-│   │
-│   ├── public/
-│   ├── package.json
-│   └── vite.config.js
+├── public/
+│   ├── data/                 # GeoJSON & World regional datasets
+│   ├── images/               # Team member spotlights & atmospheric textures
+│   ├── images/eic/           # NASA EIC visual frames & presets (Night Lights, SST, CO2, etc.)
+│   └── textures/             # Planetary surface, cloud maps, and topography
 │
-├── backend/
-│   ├── api/
-│   ├── services/
-│   ├── core/
-│   ├── models/
-│   ├── main.py
-│   └── requirements.txt
+├── src/
+│   ├── components/           # Landing, Earth 3D Canvas, Hero, System UI, Team
+│   ├── preview/
+│   │   ├── api/              # NASA POWER API client & offline fail-safe bridges
+│   │   ├── components/       # Earth Jukebox, Interactive Map, ImagePanel, Waveform
+│   │   ├── data/             # EIC Presets, Precomputed Scores, World Baseline (1981-2025)
+│   │   ├── hooks/            # Accessible view descriptions & interaction hooks
+│   │   ├── lib/              # Client-Side Image Sonifier, Tone.js Score Player, Scales
+│   │   └── state/            # Unified PreviewContext state management
+│   ├── hooks/                # Smooth scroll & canvas animation loops
+│   ├── App.jsx               # Landing Page Application
+│   ├── PreviewApp.jsx        # Earth Jukebox Station Application
+│   └── index.css             # Tailwind CSS styles & typography
 │
 ├── data/
-│   └── sample/
+│   └── NDVI/                 # Regional vegetation anomaly datasets
 │
-├── docs/
-│   ├── architecture/
-│   ├── sonification/
-│   └── research/
-│
-├── AI_USE.md
-├── LICENSE
-└── README.md
+├── scripts/                  # Data build & offline verification scripts
+├── index.html                # Landing Showcase
+├── preview.html              # Earth Jukebox Station (Main Interactive Experience)
+├── stories.html              # Earth Stories narrative showcase
+├── system.html               # Architecture & Sonification System overview
+├── team.html                 # Team Cosmic Cloud presentation
+├── concept.html              # Core Concept & Science walkthrough
+├── package.json              # Project dependencies & scripts
+├── vite.config.js            # Vite configuration
+├── LICENSE                   # Apache 2.0 License
+└── README.md                 # Documentation
 ```
 
-## Installation
+## Installation & Running
 
-> Installation instructions will be finalized as the implementation stabilizes.
+Prism Tone is engineered as a **100% client-side, self-contained application**. It requires no separate backend, server setup, or database to run all features, visual frames, and real-time sonifications.
 
 ### Prerequisites
 
 * Node.js 18+
-* Python 3.10+
 * Git
 
 ### Clone the repository
 
 ```bash
-git clone https://github.com/Cosmic-Cloud/PrismTone.git
-cd PrismTone
+git clone https://github.com/Nephophile06/Prism-Tone_The-Earth-Information-Jukebox.git
+cd Prism-Tone_The-Earth-Information-Jukebox
 ```
 
-### Frontend
+### Install & Launch
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173/preview.html`. Vite proxies `/api` to the backend on
-port 8000; if the backend is not running, the preview uses its bundled NASA
-POWER baseline and can fall back to direct POWER requests.
+Open `http://localhost:5173/preview.html` in your browser.
 
-### Backend
+- The application immediately boots the **Earth Jukebox Station**.
+- Multi-decade NASA POWER climate data, NASA FIRMS fire events, and EIC visual frames are accessible out-of-the-box.
+- Tone.js synthesizers and HTML5 Canvas Computer Vision run in real-time with zero backend latency.
 
-```bash
-cd backend
+### Production Build & Deployment
 
-python -m venv venv
-```
-
-Windows:
+To build a static production bundle for Vercel, Netlify, or GitHub Pages:
 
 ```bash
-venv\Scripts\activate
+npm run build
+npm run preview
 ```
-
-macOS / Linux:
-
-```bash
-source venv/bin/activate
-```
-
-Then:
-
-```bash
-pip install -r requirements.txt
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-The service validates and caches NASA POWER series under `backend/data/cache/`.
-To (re)warm the seven continental 1981–2025 series while online:
-
-```bash
-python scripts/warm_power_cache.py
-```
-
-Useful endpoints: `GET /api/health`, `GET /api/layers`, `GET /api/series`,
-`GET /api/preview/series`, `GET /api/power/series`, `GET /api/hotspots`,
-`GET /api/describe`. Copy `.env.example` to `.env` to configure CORS origins,
-optional live POWER/FIRMS retrieval, or the cache-clear switch.
-
-For a deployed build, set `VITE_PREVIEW_API` to the hosted API root (for
-example `https://api.example.org/api`) before `npm run build`. Without it the
-preview stays fully usable on static hosting through its bundled baseline and
-direct NASA POWER requests.
 
 ## Development Roadmap
 
