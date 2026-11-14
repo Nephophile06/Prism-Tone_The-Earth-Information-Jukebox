@@ -1,0 +1,487 @@
+@import "tailwindcss";
+@import "./dust.css";
+
+@theme {
+  --color-ink: #121313;
+  --color-coal: #1c1d1d;
+  --color-ivory: #f2ede3;
+  --color-cream: #e2d9c6;
+  --color-beige: #b1a68c;
+  --color-parchment: #7c7360;
+  --color-ember: #c19a5b;
+  --color-ice: #9aa7ad;
+
+  --font-display: "Meno Banner";
+  --font-editorial: "Meno Banner";
+  --font-meno: "Meno Banner";
+  --font-stencil: "Hansson Stencil MN", "Allerta Stencil", "Oxanium", sans-serif;
+  --font-elegant: "Adrianna", "Jost", "Titillium Web", sans-serif;
+  --font-data: "Oxanium", "Titillium Web", sans-serif;
+  --font-ui: "Titillium Web", "Jost", system-ui, sans-serif;
+}
+
+.font-meno {
+  font-family: "Meno Banner" !important;
+}
+
+html {
+  background: #121313;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+  overscroll-behavior: none;
+}
+
+/* Lenis smooth scrolling rules */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+body.system-page {
+  background: #1e2a2c;
+}
+
+body.concept-page {
+  background: #111417;
+}
+
+body.team-page {
+  background: #0c0d11;
+}
+
+::selection {
+  background: var(--color-ivory);
+  color: var(--color-ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #121313;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2b2b;
+  border: 2px solid #121313;
+  border-radius: 8px;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Sleek inner scrollbar for data tracks and tables */
+.data-tracks-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 242, 235, 0.4) rgba(0, 0, 0, 0.4);
+}
+
+.data-tracks-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.data-tracks-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+}
+
+.data-tracks-scroll::-webkit-scrollbar-thumb {
+  background: rgba(245, 242, 235, 0.35);
+  border-radius: 4px;
+}
+
+.data-tracks-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 140, 95, 0.7);
+}
+
+/* photographic vignette — used sparingly over imagery only */
+.vignette {
+  background: radial-gradient(115% 90% at 50% 42%, transparent 52%, rgba(18, 19, 19, 0.62) 100%);
+}
+
+/* Stacking glassmorphic sheet with straight line divider */
+.stack-card {
+  position: sticky;
+  top: -40vh;
+  border-top: 1px solid rgba(242, 237, 227, 0.15);
+  background: linear-gradient(180deg,
+      rgba(20, 21, 24, 0.96) 0%,
+      rgba(12, 13, 17, 0.98) 110px,
+      rgba(8, 9, 12, 0.99) 100%);
+  box-shadow:
+    0 -20px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(242, 237, 227, 0.15);
+}
+
+.stack-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: radial-gradient(ellipse 85% 100% at 50% 0%,
+      rgba(242, 237, 227, 0.06) 0%,
+      rgba(193, 154, 91, 0.03) 45%,
+      transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Below the desktop breakpoint the stacked sections are taller than the
+   viewport; sticky pinning with a negative top would hide their lower
+   content, so they flow normally on mobile and tablet. */
+@media (max-width: 1023.98px) {
+  .stack-card {
+    position: relative;
+    top: auto;
+  }
+}
+
+/* cinematic film grain — static to eliminate full-screen GPU compositing cycles */
+.grain {
+  position: fixed;
+  inset: -12%;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  contain: strict;
+}
+
+
+
+.fade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* Preview page — visible focus state for keyboard-operable map regions */
+.map-focus:focus {
+  outline: none;
+}
+
+.map-focus:focus-visible {
+  stroke: #f2ede3;
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 5px rgba(242, 237, 227, 0.65));
+}
+
+/* Preview page — thin range inputs (timeline scrubber, volume) */
+input[type='range'].pt-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: rgba(242, 237, 227, 0.25);
+  cursor: pointer;
+}
+
+input[type='range'].pt-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #f2ede3;
+  border: none;
+}
+
+input[type='range'].pt-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #f2ede3;
+  border: none;
+}
+
+input[type='range'].pt-range:focus-visible {
+  outline: 1px solid rgba(242, 237, 227, 0.7);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain {
+    animation: none;
+  }
+}
+
+/* Preview page — display & access preferences.
+   The attributes live on <html> only while the preview page is mounted, so
+   nothing here can leak into the other pages. */
+
+[data-pt-contrast='high'] [class*='text-beige'],
+[data-pt-contrast='high'] [class*='text-parchment'],
+[data-pt-contrast='high'] [class*='text-cream/'],
+[data-pt-contrast='high'] [class*='text-ivory/'] {
+  color: #f2ede3 !important;
+}
+
+[data-pt-contrast='high'] [class*='border-ivory/'] {
+  border-color: rgba(242, 237, 227, 0.42) !important;
+}
+
+[data-pt-contrast='high'] [class*='bg-coal/'] {
+  background-color: #191a1a !important;
+}
+
+[data-pt-motion='reduced'] *,
+[data-pt-motion='reduced'] *::before,
+[data-pt-motion='reduced'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* The caption size preference drives this variable from React state. */
+.pt-caption-text {
+  font-size: var(--pt-caption-size, 23px);
+  line-height: 1.5;
+  max-width: 65ch;
+}
+
+/* Reference-style cosmic background — 8 stacked layers over a deep ink
+   base. Mirrors the landing page's CosmicBackground system but is rebuilt
+   in the existing ink/ivory palette only. No new colors introduced. */
+
+.bg-cosmic {
+  background:
+    radial-gradient(ellipse at 50% 30%,
+      rgba(36, 37, 37, 1) 0%,
+      rgba(20, 21, 21, 1) 45%,
+      rgba(18, 19, 19, 1) 100%);
+}
+
+/* 1. Nebula clouds — soft ivory radial blobs + center darken */
+.bg-nebula-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bg-nebula {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+      rgba(242, 237, 227, var(--a, 0.05)) 0%,
+      transparent 60%);
+  pointer-events: none;
+}
+
+.bg-center-darken {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* 2. Horizon haze */
+.bg-horizon {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* 3. + 7. Star field (faint + bright) */
+.bg-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bg-star {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(242, 237, 227, 0.85);
+  box-shadow: 0 0 2px rgba(242, 237, 227, 0.4);
+  animation: bg-star-twinkle var(--d) ease-in-out var(--del) infinite;
+}
+
+@keyframes bg-star-twinkle {
+
+  0%,
+  100% {
+    opacity: calc(var(--star-op, 0.4) * var(--tmin, 0.4));
+  }
+
+  50% {
+    opacity: var(--star-op, 0.6);
+  }
+}
+
+/* 4. Constellations — sparse web of SVG lines + nodes */
+.bg-constellations {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.bg-const-line {
+  animation: bg-const-pulse var(--d) ease-in-out var(--del) infinite;
+}
+
+@keyframes bg-const-pulse {
+
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+
+  50% {
+    opacity: 0.22;
+  }
+}
+
+/* 5. Orbital arcs — three rotating SVG ellipses */
+.bg-arcs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.bg-arc {
+  animation: bg-arc-spin var(--d) linear infinite;
+}
+
+@keyframes bg-arc-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(var(--spin, 360deg));
+  }
+}
+
+/* 6. Drifting particles — ivory specks rising upward */
+.bg-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(242, 237, 227, 0.85);
+  animation: bg-particle-rise var(--d) linear var(--del) infinite;
+}
+
+@keyframes bg-particle-rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate3d(var(--dx, 0), -110vh, 0);
+    opacity: 0;
+  }
+}
+
+/* 8. Data trails — horizontal light streaks */
+.bg-trails {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bg-trail {
+  position: absolute;
+  left: 0;
+  height: 1px;
+  box-shadow:
+    0 0 var(--glow, 6px) rgba(242, 237, 227, 0.6),
+    0 0 calc(var(--glow, 6px) * 2) rgba(242, 237, 227, 0.2);
+  transform: translateX(-50%);
+  animation: bg-trail-sweep var(--d) linear var(--del) infinite;
+}
+
+@keyframes bg-trail-sweep {
+  0% {
+    transform: translateX(-50%);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.7;
+  }
+
+  85% {
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: translateX(120vw);
+    opacity: 0;
+  }
+}
+
+/* 9. Subtle grain — fractalNoise SVG, 3.5% opacity */
+.bg-grain-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-repeat: repeat;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .bg-nebula-wrap,
+  .bg-star,
+  .bg-const-line,
+  .bg-arc,
+  .bg-particle,
+  .bg-trail {
+    animation: none;
+  }
+}

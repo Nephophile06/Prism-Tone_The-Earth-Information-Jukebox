@@ -1,0 +1,9 @@
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.env
+*.tmp
+.pytest_cache/
+data/cache/power/*.tmp
+data/cache/sonify/
+data/sonify/
