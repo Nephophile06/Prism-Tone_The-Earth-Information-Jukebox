@@ -165,6 +165,11 @@ export async function fetchDataScore({ series, variables, options, signal } = {}
     return { ok: false, aborted: false, kind: 'invalid', message: 'No variables selected for scoring' }
   }
 
+  // Pure client-side default: use browser Tone.js planetary synthesis engine directly
+  if (!import.meta.env.VITE_PREVIEW_API) {
+    return { ok: false, kind: 'unavailable', message: 'Local client-side mapping active' }
+  }
+
   try {
     const payload = await withRetry(
       () => attempt('/sonify/data', {
@@ -176,21 +181,12 @@ export async function fetchDataScore({ series, variables, options, signal } = {}
     )
     const result = readEnvelope(payload)
     if (!result) {
-      return await sonifyImageClient({ file, imageUrl, options })
+      return { ok: false, kind: 'unavailable', message: 'Score envelope unusable' }
     }
     return result
   } catch (err) {
     if (signal && signal.aborted) {
       return unavailable(err)
-    }
-    // Fail-safe client-side sonification fallback
-    try {
-      const clientResult = await sonifyImageClient({ file, imageUrl, options })
-      if (clientResult && clientResult.ok) {
-        return clientResult
-      }
-    } catch {
-      /* ignore and return standard unavailable */
     }
     return unavailable(err)
   }
@@ -229,6 +225,12 @@ export async function fetchImageScore({ file, imageUrl, options, signal } = {}) 
   const problem = usingFile ? validateImageFile(file) : validateImageUrl(imageUrl)
   if (problem) return { ok: false, aborted: false, kind: 'invalid', message: problem }
 
+  // 1. Pure client-side default: run browser-native HTML5 Canvas + OpenCV computer vision sonification directly
+  if (!import.meta.env.VITE_PREVIEW_API) {
+    return await sonifyImageClient({ file, imageUrl, options })
+  }
+
+  // 2. If a dedicated backend API is explicitly configured via VITE_PREVIEW_API:
   try {
     let payload
     if (usingFile) {
@@ -251,10 +253,10 @@ export async function fetchImageScore({ file, imageUrl, options, signal } = {}) 
     }
 
     const result = readEnvelope(payload)
-    if (!result) {
-      return await sonifyImageClient({ file, imageUrl, options })
+    if (result && result.ok) {
+      return result
     }
-    return result
+    return await sonifyImageClient({ file, imageUrl, options })
   } catch (err) {
     if (signal && signal.aborted) {
       return unavailable(err)
@@ -262,7 +264,7 @@ export async function fetchImageScore({ file, imageUrl, options, signal } = {}) 
     // Fail-safe client-side sonification fallback
     try {
       const clientResult = await sonifyImageClient({ file, imageUrl, options })
-      if (clientResult && clientResult.ok) {
+      if (clientResult) {
         return clientResult
       }
     } catch {

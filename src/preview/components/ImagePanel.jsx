@@ -1053,7 +1053,7 @@ export default function ImagePanel() {
                         : 'Precomputed score checked in with the frame · no network needed'
                   : activeTab === 'video'
                     ? 'Live OpenCV video scoring · 12 sampled frames · API required'
-                    : 'Live OpenCV scoring through the FastAPI sonification service'}
+                    : 'Browser-native computer vision sonification via HTML5 Canvas & Tone.js'}
               </p>
 
               {activeTab === 'eic' && (

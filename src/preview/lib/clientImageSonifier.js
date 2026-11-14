@@ -302,30 +302,51 @@ function computeSobelEdges(lumGrid, width, height) {
 /**
  * Loads an image from File, Blob, or URL into an HTMLImageElement.
  */
+/**
+ * Loads an image from File, Blob, or URL into an HTMLImageElement.
+ * Supports local files, remote URLs, and CORS proxy fallback for servers like NASA SVS.
+ */
 function loadImageElement(source) {
   return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
     let objectUrl = null
 
-    if (typeof source === 'string') {
-      img.src = source
-    } else if (source instanceof Blob || source instanceof File) {
+    if (source instanceof Blob || source instanceof File) {
+      const img = new Image()
       objectUrl = URL.createObjectURL(source)
+      img.onload = () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl)
+        resolve(img)
+      }
+      img.onerror = () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl)
+        reject(new Error('Failed to decode local image file.'))
+      }
       img.src = objectUrl
-    } else {
-      reject(new Error('Invalid image source'))
       return
     }
 
-    img.onload = () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-      resolve(img)
+    if (typeof source === 'string') {
+      const isRemote = /^https?:\/\//i.test(source)
+      const tryLoad = (srcUrl, allowProxyFallback = true) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => resolve(img)
+        img.onerror = () => {
+          if (isRemote && allowProxyFallback) {
+            // Fallback to CORS proxy for external servers (like NASA SVS) that restrict direct browser canvas reads
+            const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(source)}`
+            tryLoad(proxyUrl, false)
+          } else {
+            reject(new Error('Could not load remote image due to CORS restrictions. Please upload it directly as a PNG/JPEG file using "Choose File".'))
+          }
+        }
+        img.src = srcUrl
+      }
+      tryLoad(source, true)
+      return
     }
-    img.onerror = () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-      reject(new Error('Failed to load image'))
-    }
+
+    reject(new Error('Invalid image source'))
   })
 }
 
