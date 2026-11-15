@@ -131,6 +131,10 @@ export default function ImagePanel() {
   const abortRef = useRef(null)
   const [previewSrc, setPreviewSrc] = useState('')
   const progressRafRef = useRef(null)
+  const playheadRef = useRef(null)
+  const playheadRadialRef = useRef(null)
+  const lastRegionRef = useRef(-1)
+  const [activeRegion, setActiveRegion] = useState(0)
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
 
   useEffect(() => {
@@ -237,11 +241,36 @@ export default function ImagePanel() {
     const totalBeats = Math.max(1, scoreLengthBeats(score))
     const step = () => {
       if (!engine.imageActive) {
-        setProgress(0)
+        if (playheadRef.current) playheadRef.current.style.left = '0%'
+        if (playheadRadialRef.current) {
+          playheadRadialRef.current.style.width = '0%'
+          playheadRadialRef.current.style.height = '0%'
+          playheadRadialRef.current.style.opacity = '0'
+        }
         return
       }
       const beat = engine.beat || 0
-      setProgress(Math.min(1, beat / totalBeats))
+      const pct = Math.min(1, Math.max(0, beat / totalBeats))
+
+      // Direct DOM mutation avoids 60 React re-renders per second, keeping main thread idle and audio pristine!
+      if (playheadRef.current) {
+        playheadRef.current.style.left = `${pct * 100}%`
+      }
+      if (playheadRadialRef.current) {
+        const size = `${pct * 140}%`
+        playheadRadialRef.current.style.width = size
+        playheadRadialRef.current.style.height = size
+        playheadRadialRef.current.style.opacity = `${Math.max(0, 1 - pct * 0.4)}`
+      }
+
+      if (currentScan === 'regions') {
+        const nextRegion = Math.min(regionTiles - 1, Math.floor(pct * regionTiles))
+        if (nextRegion !== lastRegionRef.current) {
+          lastRegionRef.current = nextRegion
+          setActiveRegion(nextRegion)
+        }
+      }
+
       const video = videoRef.current
       if (video && Number.isFinite(video.duration) && video.duration > 0) {
         const target = Math.min(video.duration - 0.001, beat * (video.duration / totalBeats))
@@ -258,7 +287,14 @@ export default function ImagePanel() {
     engine.stopImage()
     dispatch({ type: 'IMAGE_PLAYBACK', active: false })
     setStatus('ready')
-    setProgress(0)
+    if (playheadRef.current) playheadRef.current.style.left = '0%'
+    if (playheadRadialRef.current) {
+      playheadRadialRef.current.style.width = '0%'
+      playheadRadialRef.current.style.height = '0%'
+      playheadRadialRef.current.style.opacity = '0'
+    }
+    lastRegionRef.current = -1
+    setActiveRegion(0)
     const video = videoRef.current
     if (video) {
       video.pause()
@@ -616,9 +652,8 @@ export default function ImagePanel() {
       : (customScan === 'regions' ? 8 : 6))
   const regionCols = analysis?.grid_cols || (regionTiles === 8 ? 4 : regionTiles === 12 ? 4 : 3)
   const regionRows = analysis?.grid_rows || (regionTiles === 8 ? 2 : regionTiles === 12 ? 3 : 2)
-  const activeRegion = Math.min(regionTiles - 1, Math.floor(progress * regionTiles))
   const totalBeats = result?.score ? Math.max(1, scoreLengthBeats(result.score)) : 0
-  const currentBeat = totalBeats * progress
+  const currentBeat = (engine.beat || 0)
   const heardDescription = describeSonification()
 
   return (
@@ -1203,9 +1238,10 @@ export default function ImagePanel() {
                     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
                       {currentScan === 'columns' && (
                         <div
-                          className="absolute inset-y-0 w-1 bg-ember shadow-[0_0_14px_4px_rgba(217,140,95,0.85)] transition-all duration-75"
+                          ref={playheadRef}
+                          className="absolute inset-y-0 w-1 bg-ember shadow-[0_0_14px_4px_rgba(217,140,95,0.85)] will-change-transform"
                           style={{
-                            left: `${Math.min(progress * 100, 100)}%`,
+                            left: '0%',
                           }}
                         >
                           <div className="absolute top-0 -left-12 h-full w-12 bg-gradient-to-r from-transparent to-ember/25" />
@@ -1214,11 +1250,12 @@ export default function ImagePanel() {
 
                       {currentScan === 'radial' && (
                         <div
-                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ember shadow-[0_0_20px_6px_rgba(217,140,95,0.7)] transition-all duration-75"
+                          ref={playheadRadialRef}
+                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ember shadow-[0_0_20px_6px_rgba(217,140,95,0.7)] will-change-transform"
                           style={{
-                            width: `${progress * 140}%`,
-                            height: `${progress * 140}%`,
-                            opacity: 1 - progress * 0.4,
+                            width: '0%',
+                            height: '0%',
+                            opacity: 1,
                           }}
                         />
                       )}

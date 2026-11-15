@@ -116,13 +116,13 @@ const LEAD_VOICES = {
 }
 
 const PAD_VOICES = {
-  warm: { volume: -17, oscillator: 'sine', attack: 2.5, decay: 1.6, sustain: 0.55, release: 4.0 },
-  dark: { volume: -19, oscillator: 'triangle', attack: 3.2, decay: 2.2, sustain: 0.48, release: 5.2 },
-  airy: { volume: -20, oscillator: 'sine', attack: 4.0, decay: 3.0, sustain: 0.5, release: 6.0 },
-  swell: { volume: -18, oscillator: 'triangle', attack: 3.4, decay: 2.0, sustain: 0.52, release: 4.8 },
-  haze: { volume: -21, oscillator: 'sawtooth', attack: 2.2, decay: 1.8, sustain: 0.4, release: 4.4 },
-  flow: { volume: -18, oscillator: 'sine', attack: 2.8, decay: 2.4, sustain: 0.5, release: 5.0 },
-  air: { volume: -21, oscillator: 'sine', attack: 3.8, decay: 2.8, sustain: 0.46, release: 5.6 },
+  warm: { volume: -11, oscillator: 'sine', attack: 1.8, decay: 1.2, sustain: 0.7, release: 3.5 },
+  dark: { volume: -14, oscillator: 'triangle', attack: 2.2, decay: 1.6, sustain: 0.65, release: 4.2 },
+  airy: { volume: -15, oscillator: 'sine', attack: 2.8, decay: 2.0, sustain: 0.65, release: 5.0 },
+  swell: { volume: -13, oscillator: 'triangle', attack: 2.4, decay: 1.5, sustain: 0.7, release: 4.0 },
+  haze: { volume: -16, oscillator: 'sawtooth', attack: 1.8, decay: 1.4, sustain: 0.55, release: 3.8 },
+  flow: { volume: -13, oscillator: 'sine', attack: 2.0, decay: 1.8, sustain: 0.7, release: 4.2 },
+  air: { volume: -16, oscillator: 'sine', attack: 2.8, decay: 2.0, sustain: 0.65, release: 4.8 },
 }
 
 const BASS_VOICES = {
@@ -232,6 +232,9 @@ export class ScorePlayer {
         if (Tone.start) await Tone.start()
         const context = Tone.getContext && Tone.getContext()
         if (context && context.state !== 'running' && context.resume) await context.resume()
+        if (context && typeof context.lookAhead === 'number') {
+          context.lookAhead = 0.2
+        }
         this.transport = Tone.getTransport ? Tone.getTransport() : Tone.Transport
         this._buildMaster(Tone)
         this.ready = true
@@ -581,8 +584,9 @@ export class ScorePlayer {
 
   _trigger(track, note, time) {
     try {
+      const targetTime = Number.isFinite(time) && this.Tone ? Math.max(time, this.Tone.now() + 0.005) : undefined
       if (track.panner) {
-        track.panner.pan.rampTo(clamp(Number(note.pan) || 0, -1, 1), 0.06, time)
+        track.panner.pan.rampTo(clamp(Number(note.pan) || 0, -1, 1), 0.06, targetTime)
       }
       /* Read the live tempo: a rate change mid-run retimes note lengths too,
          while pitch stays the score's own. */
@@ -597,11 +601,11 @@ export class ScorePlayer {
           track.voice.triggerAttackRelease(
             midiToFrequency(note.midi + (track.transpose || 0)),
             duration,
-            time,
+            targetTime,
             velocity * 0.72,
           )
         } else {
-          track.voice.triggerAttackRelease(duration, time, velocity * 0.6)
+          track.voice.triggerAttackRelease(duration, targetTime, velocity * 0.6)
         }
         return
       }
@@ -609,7 +613,7 @@ export class ScorePlayer {
         track.voice.triggerAttackRelease(
           midiToFrequency(note.midi + (track.transpose || 0)),
           duration,
-          time,
+          targetTime,
           velocity,
         )
       }
