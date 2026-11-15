@@ -58,9 +58,6 @@ function SummaryPanel() {
   const scopeColor = state.scope.type === 'division' && CONTINENT_BY_ID[state.scope.id]
     ? CONTINENT_BY_ID[state.scope.id].color
     : '#c19a5b'
-  const kindLabel = s.scopeKind === 'national'
-    ? 'derived — planetary mean of seven continental samples'
-    : 'measured — continental sample at the centroid'
   const hasComparison = s.normal !== null && s.delta !== null
 
   const header = (
@@ -138,16 +135,6 @@ function SummaryPanel() {
         </div>
       </dl>
 
-      <p className="mt-2 font-ui text-[11.5px] leading-tight text-cream/80">
-        {variable.name} · {kindLabel} · {SOURCE.name} {SOURCE.dataset} ({YEAR_MIN}–{YEAR_MAX})
-      </p>
-
-      {s.normal === null && (
-        <p className="mt-1 font-ui text-[11px] leading-tight text-cream/70">
-          The {BASELINE.start}–{BASELINE.end} comparison needs 75% baseline coverage at this scope.
-        </p>
-      )}
-
       <ProvenanceStrip state={state} variable={variable} />
     </Panel>
   )
@@ -185,9 +172,6 @@ function ProvenanceStrip({ state, variable }) {
           <dd className="mt-0.5 font-data text-[11px] text-ivory truncate">{retrieved}</dd>
         </div>
       </dl>
-      <p className="mt-1 font-ui text-[11px] leading-tight text-cream/75">
-        Reanalysis values at sample point; no area average. Missing months stay missing.
-      </p>
     </section>
   )
 }

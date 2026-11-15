@@ -482,7 +482,7 @@ function SeriesGraph() {
       <div className="relative">
         <canvas
           ref={canvasRef}
-          className="block h-48 sm:h-52 md:h-56 lg:h-[220px] w-full cursor-crosshair"
+          className="block h-64 sm:h-72 md:h-80 lg:h-[310px] w-full cursor-crosshair"
           onMouseMove={onMove}
           onMouseLeave={() => setCursor(null)}
           tabIndex={0}
@@ -696,7 +696,7 @@ export function DataTablePanel() {
           Annual means · {variable.name} ({variable.unit})
         </p>
         <div
-          className="h-[210px] sm:h-[220px] md:h-[230px] lg:h-[240px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
+          className="h-[280px] sm:h-[295px] md:h-[310px] lg:h-[325px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
           data-lenis-prevent
         >
           <table className="w-full border-collapse font-ui">
