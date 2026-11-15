@@ -60,11 +60,11 @@ export default function NowSounding({ className = '' }) {
     return (
       <section
         aria-label="Now sounding captions"
-        className={`relative z-30 border border-ivory/10 bg-coal/40 p-4 md:p-5 flex flex-col min-h-0 overflow-hidden ${className}`}
+        className={`relative z-30 border border-ivory/10 bg-coal/40 p-3.5 md:p-4 flex flex-col min-h-0 overflow-hidden ${className}`}
       >
-        <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-3 border-b border-ivory/10 pb-3">
+        <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-2.5 border-b border-ivory/10 pb-2.5">
           <div className="flex items-baseline gap-2">
-            <span className="font-data text-[28px] leading-none text-ivory/40 font-semibold tracking-tight">
+            <span className="font-data text-[26px] sm:text-[28px] leading-none text-ivory/40 font-semibold tracking-tight">
               —
             </span>
           </div>
@@ -75,9 +75,9 @@ export default function NowSounding({ className = '' }) {
           </div>
         </div>
 
-        <div className="mt-3 min-w-0 flex-1 overflow-y-auto pr-1.5 data-tracks-scroll flex flex-col items-center justify-center text-center p-4" data-lenis-prevent>
-          <p className="font-ui text-[14px] text-cream">No data track selected</p>
-          <p className="mt-1 font-ui text-[12px] text-beige">
+        <div className="mt-2.5 min-w-0 flex-1 overflow-y-auto pr-1.5 data-tracks-scroll flex flex-col items-center justify-center text-center p-3" data-lenis-prevent>
+          <p className="font-ui text-[13.5px] text-cream">No data track selected</p>
+          <p className="mt-0.5 font-ui text-[11.5px] text-beige">
             Select at least one track above to start sonification.
           </p>
         </div>
@@ -88,19 +88,19 @@ export default function NowSounding({ className = '' }) {
   return (
     <section
       aria-label="Now sounding captions"
-      className={`relative z-30 border border-ivory/10 bg-coal/40 p-4 md:p-5 flex flex-col min-h-0 overflow-hidden ${className}`}
+      className={`relative z-30 border border-ivory/10 bg-coal/40 p-3.5 md:p-4 flex flex-col min-h-0 overflow-hidden ${className}`}
     >
       {/* Value and comparison bar at the top of the card */}
-      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-3 border-b border-ivory/10 pb-3">
+      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-2.5 border-b border-ivory/10 pb-2.5">
         <div className="flex items-baseline gap-2">
-          <span className="font-data text-[28px] leading-none text-ivory font-semibold tracking-tight">
+          <span className="font-data text-[26px] sm:text-[28px] leading-none text-ivory font-semibold tracking-tight">
             {caption.value !== null && caption.value !== undefined ? fmtValue(caption.value, variable.decimals) : '—'}
           </span>
-          <span className="font-ui text-[14px] text-cream">{variable.unit}</span>
+          <span className="font-ui text-[13.5px] text-cream">{variable.unit}</span>
         </div>
 
         <div className="flex items-center">
-          <span className={`font-ui text-[12.5px] font-medium tracking-wide ${toneClass[tone]}`}>
+          <span className={`font-ui text-[12px] font-medium tracking-wide ${toneClass[tone]}`}>
             {caption.delta !== null && caption.delta !== undefined
               ? `${fmtDelta(caption.delta, variable.decimals, variable.unit)} · ${anomalyWord(variable, caption.delta, caption.normal)}`
               : 'no baseline comparison'}
@@ -109,7 +109,7 @@ export default function NowSounding({ className = '' }) {
       </div>
 
       {/* Captions narrative */}
-      <div className="mt-3 min-w-0 flex-1 overflow-y-auto pr-1.5 data-tracks-scroll" data-lenis-prevent>
+      <div className="mt-2.5 min-w-0 flex-1 overflow-y-auto pr-1.5 data-tracks-scroll" data-lenis-prevent>
         {history.length > 0 && (
           <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-ui text-[12.5px] leading-snug text-beige" aria-label="Recent captions">
             {history.map((entry, idx) => (

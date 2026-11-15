@@ -125,7 +125,7 @@ function PreviewStudio() {
               <div className="relative z-30 shrink-0 border border-ivory/10 bg-coal/40 p-4 md:p-5">
                 <VariableSelector />
               </div>
-              <NowSounding className="h-[246px] sm:h-[250px] lg:h-[248px] xl:h-[308px] max-h-[246px] sm:max-h-[250px] lg:max-h-[248px] xl:max-h-[308px] shrink-0" />
+              <NowSounding className="h-[185px] sm:h-[195px] lg:h-[200px] xl:h-[210px] max-h-[185px] sm:max-h-[195px] lg:max-h-[200px] xl:max-h-[210px] shrink-0" />
             </div>
           </div>
         </section>
