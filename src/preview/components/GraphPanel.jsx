@@ -841,6 +841,10 @@ function WaveformGraph() {
         role="img"
         aria-label="Real-time waveform of the generated sonification audio. When playback is stopped or paused, the line is flat."
       />
+      <div className="mt-3 flex items-center justify-between font-ui text-[12px] text-cream/70">
+        <span>Time-domain oscilloscope tap</span>
+        <span className="font-data">44.1 kHz · 2048 FFT</span>
+      </div>
     </div>
   )
 }

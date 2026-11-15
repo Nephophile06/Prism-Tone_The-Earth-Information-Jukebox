@@ -76,8 +76,8 @@ function Transcript() {
   }
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-1 flex-col min-h-0">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 mb-2.5">
         <p className="font-ui text-[14px] text-cream">
           {entries.length === 0
             ? 'No captions yet this session'
@@ -91,7 +91,7 @@ function Transcript() {
             type="button"
             onClick={copy}
             disabled={entries.length === 0}
-            className="min-h-[36px] border border-ivory/25 px-3 py-1.5 font-ui text-[13px] text-ivory transition-colors hover:border-ivory/60 hover:bg-white/5 disabled:cursor-not-allowed disabled:border-ivory/10 disabled:text-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+            className="min-h-[34px] border border-ivory/25 px-3 py-1 font-ui text-[13px] text-ivory transition-colors hover:border-ivory/60 hover:bg-white/5 disabled:cursor-not-allowed disabled:border-ivory/10 disabled:text-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
           >
             Copy text
           </button>
@@ -99,7 +99,7 @@ function Transcript() {
             type="button"
             onClick={download}
             disabled={entries.length === 0}
-            className="min-h-[36px] border border-ivory/25 px-3 py-1.5 font-ui text-[13px] text-ivory transition-colors hover:border-ivory/60 hover:bg-white/5 disabled:cursor-not-allowed disabled:border-ivory/10 disabled:text-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+            className="min-h-[34px] border border-ivory/25 px-3 py-1 font-ui text-[13px] text-ivory transition-colors hover:border-ivory/60 hover:bg-white/5 disabled:cursor-not-allowed disabled:border-ivory/10 disabled:text-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
           >
             Download .txt
           </button>
@@ -110,7 +110,7 @@ function Transcript() {
                 dispatch({ type: 'CLEAR_TRANSCRIPT' })
                 actions.announce('Transcript cleared.')
               }}
-              className="min-h-[36px] border border-transparent px-2 py-1.5 font-ui text-[13px] text-cream transition-colors hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+              className="min-h-[34px] border border-transparent px-2 py-1 font-ui text-[13px] text-cream transition-colors hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
             >
               Clear
             </button>
@@ -118,39 +118,46 @@ function Transcript() {
         </div>
       </div>
 
-      {entries.length === 0 ? (
-        <p className="mt-4 border-t border-ivory/10 pt-4 font-ui text-[15px] leading-relaxed text-cream">
-          Captions appear here as the record is explored — one entry per sounding month or selected period.
-          Press play, move through the timeline, or change the selection to begin.
-        </p>
-      ) : (
-        <ol className="mt-4 max-h-[28rem] overflow-y-auto border-t border-ivory/10" aria-label="Captions in chronological order">
-          {entries.map((entry) => (
-            <li key={entry.id} className="border-b border-ivory/10 py-3 last:border-b-0">
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <time dateTime={new Date(entry.at).toISOString()} className="font-data text-[13px] text-beige">
-                  {clock(entry.at)}
-                </time>
-                <span className="font-ui text-[14px] font-semibold text-ivory">
-                  {entry.variable}
-                  {entry.label ? ` · ${entry.label}` : ''}
-                </span>
-                {entry.value !== null && entry.value !== undefined && (
-                  <span className="font-data text-[14px] text-cream">
-                    {fmtValue(entry.value, Number.isFinite(entry.decimals) ? entry.decimals : 1)} {entry.unit || ''}
-                    {entry.delta !== null && entry.delta !== undefined
-                      ? ` (${fmtDelta(entry.delta, Number.isFinite(entry.decimals) ? entry.decimals : 1, entry.unit || '')})`
-                      : ''}
+      <div
+        className="h-[275px] sm:h-[295px] md:h-[315px] lg:h-[335px] overflow-y-auto border-t border-b border-ivory/10 pr-1.5 data-tracks-scroll"
+        data-lenis-prevent
+      >
+        {entries.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+            <p className="font-ui text-[14.5px] leading-relaxed text-cream max-w-md">
+              Captions appear here as the record is explored — one entry per sounding month or selected period.
+              Press play, move through the timeline, or change the selection to begin.
+            </p>
+          </div>
+        ) : (
+          <ol className="divide-y divide-ivory/10" aria-label="Captions in chronological order">
+            {entries.map((entry) => (
+              <li key={entry.id} className="py-3">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <time dateTime={new Date(entry.at).toISOString()} className="font-data text-[13px] text-beige">
+                    {clock(entry.at)}
+                  </time>
+                  <span className="font-ui text-[14px] font-semibold text-ivory">
+                    {entry.variable}
+                    {entry.label ? ` · ${entry.label}` : ''}
                   </span>
-                )}
-              </div>
-              <p className="mt-1 max-w-[75ch] font-ui text-[15px] leading-relaxed text-cream">{entry.text}</p>
-            </li>
-          ))}
-        </ol>
-      )}
+                  {entry.value !== null && entry.value !== undefined && (
+                    <span className="font-data text-[14px] text-cream">
+                      {fmtValue(entry.value, Number.isFinite(entry.decimals) ? entry.decimals : 1)} {entry.unit || ''}
+                      {entry.delta !== null && entry.delta !== undefined
+                        ? ` (${fmtDelta(entry.delta, Number.isFinite(entry.decimals) ? entry.decimals : 1, entry.unit || '')})`
+                        : ''}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 max-w-[75ch] font-ui text-[14.5px] leading-relaxed text-cream">{entry.text}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
 
-      <p className="mt-4 border-t border-ivory/10 pt-3 font-ui text-[13px] leading-relaxed text-cream">
+      <p className="mt-2.5 shrink-0 font-ui text-[12.5px] leading-relaxed text-cream">
         Generated from the loaded NASA POWER record during this visit only. Nothing is stored on a server and
         nothing is added after the fact.
       </p>
