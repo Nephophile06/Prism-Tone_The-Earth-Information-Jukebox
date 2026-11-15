@@ -29,9 +29,9 @@ export default function Sparkline({ points, current = -1, normal = null, decimal
   hi += span * 0.1
 
   const W = 100
-  const H = 34
+  const H = 48
   const x = (i) => (points.length === 1 ? W / 2 : (i / (points.length - 1)) * W)
-  const y = (v) => H - ((v - lo) / (hi - lo)) * H
+  const y = (v) => H - ((v - lo) / (hi - lo)) * (H - 8) - 4
 
   let d = ''
   let pen = false
@@ -58,46 +58,62 @@ export default function Sparkline({ points, current = -1, normal = null, decimal
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
-        className="block h-10 sm:h-11 w-full"
+        className="block h-20 sm:h-24 w-full"
         role="img"
         aria-label={aria}
       >
-        <line x1="0" y1={H / 2} x2={W} y2={H / 2} stroke="rgba(242,237,227,0.12)" strokeWidth="0.5" />
+        <defs>
+          <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#d98c5f" stopOpacity="0.32" />
+            <stop offset="50%" stopColor="#f2ede3" stopOpacity="0.10" />
+            <stop offset="100%" stopColor="#101212" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <line x1="0" y1={H / 2} x2={W} y2={H / 2} stroke="rgba(242,237,227,0.10)" strokeWidth="0.5" />
         {normY !== null && (
           <line
             x1="0"
             y1={normY}
             x2={W}
             y2={normY}
-            stroke="rgba(177,166,140,0.8)"
-            strokeWidth="0.6"
+            stroke="rgba(193,154,91,0.7)"
+            strokeWidth="0.75"
             strokeDasharray="2 2"
             vectorEffect="non-scaling-stroke"
           />
         )}
-        {area && <path d={area} fill="rgba(226,217,198,0.10)" stroke="none" />}
+        {area && <path d={area} fill="url(#spark-grad)" stroke="none" />}
         {d && (
           <path
             d={d}
             fill="none"
-            stroke="rgba(242,237,227,0.9)"
-            strokeWidth="1.4"
+            stroke="rgba(247,243,235,0.98)"
+            strokeWidth="1.8"
             vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
         )}
         {currentPoint && currentPoint.value !== null && (
-          <circle
-            cx={x(current)}
-            cy={y(currentPoint.value)}
-            r="1.8"
-            fill="#c19a5b"
-            vectorEffect="non-scaling-stroke"
-          />
+          <>
+            <circle
+              cx={x(current)}
+              cy={y(currentPoint.value)}
+              r="4.5"
+              fill="rgba(217, 140, 95, 0.3)"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle
+              cx={x(current)}
+              cy={y(currentPoint.value)}
+              r="2.2"
+              fill="#d98c5f"
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
         )}
       </svg>
-      <div className="mt-0.5 flex items-center justify-between gap-2 font-ui text-[11px] text-beige">
+      <div className="mt-1 flex items-center justify-between gap-2 font-ui text-[11.5px] text-beige">
         <span>{points[0] && points[0].key ? points[0].key.slice(0, 4) : 'start'}</span>
         <span>{normal !== null && normal !== undefined ? `dashed: 1991–2020 normal` : ''}</span>
         <span>{points[points.length - 1] && points[points.length - 1].key ? points[points.length - 1].key.slice(0, 4) : 'end'}</span>
