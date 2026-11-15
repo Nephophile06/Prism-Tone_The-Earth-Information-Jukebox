@@ -20,6 +20,7 @@ import { fetchImageScore, fetchVideoScore } from '../api/sonify'
 import { engine } from '../lib/sonify'
 import { EIC_PRESETS, getPresetScore } from '../data/eicPresets'
 import { scoreLengthBeats } from '../lib/score'
+import { cancelSpeech, getBestVoice, isSpeechSupported } from '../lib/speech'
 import Panel from './Panel'
 
 const SCAN_MODES = [
@@ -136,6 +137,20 @@ export default function ImagePanel() {
   const lastRegionRef = useRef(-1)
   const [activeRegion, setActiveRegion] = useState(0)
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
+  const [describing, setDescribing] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      cancelSpeech()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (describing) {
+      cancelSpeech()
+      setDescribing(false)
+    }
+  }, [activePreset?.id])
 
   useEffect(() => {
     if (!timelineModalOpen) return
@@ -656,6 +671,47 @@ export default function ImagePanel() {
   const currentBeat = (engine.beat || 0)
   const heardDescription = describeSonification()
 
+  const handleToggleDescribe = () => {
+    if (describing) {
+      cancelSpeech()
+      setDescribing(false)
+      actions.announce('Stopped audio description.')
+      return
+    }
+
+    const textToSpeak = `${activeTab === 'eic' ? activePreset.name : 'Sonification'}. ${heardDescription}`
+
+    if (!isSpeechSupported()) {
+      actions.announce(textToSpeak)
+      return
+    }
+
+    cancelSpeech()
+
+    const utterance = new window.SpeechSynthesisUtterance(textToSpeak)
+    const voice = getBestVoice(state.settings?.voiceURI)
+    if (voice) {
+      utterance.voice = voice
+      utterance.lang = voice.lang || 'en-US'
+    } else {
+      utterance.lang = 'en-US'
+    }
+    utterance.rate = 0.95
+    utterance.pitch = 1.02
+    utterance.volume = Math.min(1, Math.max(0.1, Number(state.volume) || 1))
+
+    utterance.onend = () => setDescribing(false)
+    utterance.onerror = () => setDescribing(false)
+
+    try {
+      window.speechSynthesis.resume()
+    } catch {}
+
+    window.speechSynthesis.speak(utterance)
+    setDescribing(true)
+    actions.announce(textToSpeak)
+  }
+
   return (
     <Panel
       title="Earth Jukebox"
@@ -891,10 +947,34 @@ export default function ImagePanel() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => actions.announce(`${activePreset.name}. ${heardDescription}`)}
-                      className="border border-ivory/25 px-3 py-1.5 font-ui text-[13px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                      onClick={handleToggleDescribe}
+                      aria-label={describing ? 'Stop audio description' : 'Hear audio description of sonification'}
+                      title={describing ? 'Stop audio description' : 'Listen to spoken audio description'}
+                      className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-ui text-[13px] font-medium transition-all cursor-pointer ${
+                        describing
+                          ? 'border-ember bg-ember/20 text-ivory hover:bg-ember/30 shadow-sm'
+                          : 'border-ivory/25 text-cream hover:border-ivory/50 hover:text-ivory hover:bg-white/5'
+                      } focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory`}
                     >
-                      Describe sonification
+                      {describing ? (
+                        <>
+                          <span className="flex items-center gap-0.5" aria-hidden="true">
+                            <span className="h-2.5 w-0.5 animate-pulse bg-ember" />
+                            <span className="h-3.5 w-0.5 animate-pulse bg-ember" />
+                            <span className="h-2 w-0.5 animate-pulse bg-ember" />
+                          </span>
+                          <span>Stop narration</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                          </svg>
+                          <span>Describe sonification (Audio)</span>
+                        </>
+                      )}
                     </button>
                   </div>
                   <p className="mt-2 font-ui text-[15.5px] leading-relaxed text-cream/90">
