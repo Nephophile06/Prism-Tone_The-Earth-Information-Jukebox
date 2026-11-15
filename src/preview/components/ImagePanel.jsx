@@ -807,48 +807,48 @@ export default function ImagePanel() {
             {activeTab === 'eic' ? (
               <>
                 <div className="flex flex-wrap items-baseline gap-2.5">
-                  <span className="border border-ivory/20 bg-white/[0.04] px-2.5 py-0.5 font-data text-[12px] text-beige">
+                  <span className="border border-ivory/20 bg-white/[0.04] px-2.5 py-0.5 font-data text-[12.5px] text-beige">
                     {activePreset.badge}
                   </span>
-                  <span className="font-ui text-[12.5px] text-cream/75">
+                  <span className="font-ui text-[13px] text-cream/75">
                     {activePreset.category}
                   </span>
                 </div>
 
-                <h3 className="font-ui text-[18px] sm:text-[20px] font-bold text-ivory tracking-tight">
+                <h3 className="font-ui text-[20px] sm:text-[23px] font-bold text-ivory tracking-tight">
                   {activePreset.name}
                 </h3>
 
-                <p className="font-ui text-[14.5px] leading-relaxed text-cream/90">
+                <p className="font-ui text-[16px] leading-relaxed text-cream/90">
                   {activePreset.description}
                 </p>
 
                 {/* Analysis Metrics Box (Computer Vision Analysis) */}
-                <div className="border border-ivory/15 bg-black/40 p-3 font-ui text-[13px]">
-                  <div className="flex items-center justify-between border-b border-ivory/10 pb-1.5 mb-2 font-data text-[12px] text-beige">
-                    <span>Computer Vision Analysis</span>
+                <div className="border border-ivory/15 bg-black/40 p-3.5 font-ui text-[14.5px]">
+                  <div className="flex items-center justify-between border-b border-ivory/10 pb-1.5 mb-2 font-data text-[13.5px] text-beige">
+                    <span className="font-medium">Computer Vision Analysis</span>
                     <span>{analysis ? `${analysis.width} × ${analysis.height}` : 'Standby'}</span>
                   </div>
 
                   {analysis ? (
-                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-cream/90">
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-cream/90">
                       <div className="flex justify-between">
                         <dt className="text-beige">Mean Hue:</dt>
-                        <dd className="font-data">{fmt(analysis.mean_hue_deg, 1)}°</dd>
+                        <dd className="font-data font-medium">{fmt(analysis.mean_hue_deg, 1)}°</dd>
                       </div>
                       <div className="flex justify-between">
                         <dt className="text-beige">Saturation:</dt>
-                        <dd className="font-data">{fmt(analysis.mean_saturation)}</dd>
+                        <dd className="font-data font-medium">{fmt(analysis.mean_saturation)}</dd>
                       </div>
                       <div className="flex justify-between">
                         <dt className="text-beige">Luminance / Value:</dt>
-                        <dd className="font-data">{fmt(analysis.mean_value)}</dd>
+                        <dd className="font-data font-medium">{fmt(analysis.mean_value)}</dd>
                       </div>
                       <div className="flex justify-between">
                         <dt className="text-beige">Sobel Edge Density:</dt>
-                        <dd className="font-data">{fmt(analysis.mean_edge)}</dd>
+                        <dd className="font-data font-medium">{fmt(analysis.mean_edge)}</dd>
                       </div>
-                      <div className="col-span-2 mt-1.5 flex flex-wrap justify-between gap-x-3 gap-y-1 border-t border-ivory/10 pt-1.5 font-data text-[11.5px] text-beige">
+                      <div className="col-span-2 mt-2 flex flex-wrap justify-between gap-x-3 gap-y-1 border-t border-ivory/10 pt-2 font-data text-[13px] text-beige">
                         <span>{analysis.scale_label || [analysis.key, analysis.scale].filter(Boolean).join(' ')}</span>
                         <span>{analysis.tempo_bpm ? `${analysis.tempo_bpm} bpm` : 'tempo from brightness'}</span>
                         <span>{analysis.transients ?? 0} transient{analysis.transients === 1 ? '' : 's'}</span>
@@ -856,7 +856,7 @@ export default function ImagePanel() {
                           <span>{analysis.grid_tiles} tiles · {analysis.grid_cols}×{analysis.grid_rows}</span>
                         ) : null}
                       </div>
-                      <div className="col-span-2 text-[11.5px] leading-snug text-beige">
+                      <div className="col-span-2 text-[13px] leading-snug text-beige mt-0.5">
                         {analysis.color_source === 'legend'
                           ? 'Pitch follows the colour ramp; the caption states a ramp position, not a recovered physical value.'
                           : analysis.color_source === 'hue'
@@ -865,23 +865,23 @@ export default function ImagePanel() {
                       </div>
                     </dl>
                   ) : (
-                    <p className="text-[12.5px] text-cream/70 leading-snug">
+                    <p className="text-[13.5px] text-cream/70 leading-snug">
                       Select any NASA EIC preset to inspect its computer-vision metrics (hue, luminance, Sobel edges).
                     </p>
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 text-[13px] font-ui text-cream/80">
-                  <div className="inline-flex items-center gap-1.5 border border-ivory/15 px-2.5 py-1">
+                <div className="flex flex-wrap items-center gap-3 text-[14px] font-ui text-cream/80">
+                  <div className="inline-flex items-center gap-1.5 border border-ivory/15 px-3 py-1.5">
                     <span className="text-beige">Scan:</span>
                     <span className="font-semibold text-ivory capitalize">{activePreset.scan}</span>
                     <span className="text-cream/70">· {activePreset.direction}</span>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 border border-ivory/15 px-2.5 py-1">
+                  <div className="inline-flex items-center gap-1.5 border border-ivory/15 px-3 py-1.5">
                     <span className="text-beige">Music:</span>
                     <span className="text-ivory">{activePreset.key} {activePreset.scale} · {activePreset.recommendedTempo}</span>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 border border-ivory/15 px-2.5 py-1">
+                  <div className="inline-flex items-center gap-1.5 border border-ivory/15 px-3 py-1.5">
                     <span className="text-beige">Palette:</span>
                     <span className="text-ivory">{activePreset.musicalStyle}</span>
                   </div>
@@ -895,13 +895,13 @@ export default function ImagePanel() {
                   </a>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 font-ui text-[12.5px]">
-                  <label className="inline-flex cursor-pointer items-center gap-2 border border-ivory/15 px-2.5 py-1 text-cream transition-colors hover:border-ivory/40">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 font-ui text-[13.5px]">
+                  <label className="inline-flex cursor-pointer items-center gap-2 border border-ivory/15 px-3 py-1.5 text-cream transition-colors hover:border-ivory/40">
                     <input
                       type="checkbox"
                       checked={liveScore}
                       onChange={(event) => toggleLiveMode(event.target.checked)}
-                      className="h-3 w-3 accent-[#d98c5f]"
+                      className="h-3.5 w-3.5 accent-[#d98c5f]"
                     />
                     <span>Live browser-vision scoring</span>
                   </label>
@@ -912,23 +912,23 @@ export default function ImagePanel() {
                   </span>
                 </div>
 
-                <div className="border border-ivory/15 bg-black/35 p-3">
+                <div className="border border-ivory/15 bg-black/35 p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-ui text-[12.5px] font-semibold uppercase tracking-wider text-beige">
+                    <p className="font-ui text-[13.5px] font-semibold uppercase tracking-wider text-beige">
                       What you are hearing
                     </p>
                     <button
                       type="button"
                       onClick={() => actions.announce(`${activePreset.name}. ${heardDescription}`)}
-                      className="border border-ivory/25 px-2.5 py-1 font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+                      className="border border-ivory/25 px-3 py-1.5 font-ui text-[13px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
                     >
                       Describe sonification
                     </button>
                   </div>
-                  <p className="mt-1.5 font-ui text-[13px] leading-relaxed text-cream/90">
+                  <p className="mt-2 font-ui text-[15.5px] leading-relaxed text-cream/90">
                     {heardDescription}
                   </p>
-                  <p className="mt-2 border-t border-ivory/10 pt-1.5 font-ui text-[11.5px] leading-snug text-beige">
+                  <p className="mt-2.5 border-t border-ivory/10 pt-2 font-ui text-[13px] leading-snug text-beige">
                     Frame: NASA SVS {activePreset.svsId} · retrieved {RETRIEVED}. {NASA_NOTE}
                   </p>
                 </div>
@@ -1191,28 +1191,28 @@ export default function ImagePanel() {
 
             {/* Scientific Color Ramp / Legend */}
             {activeTab === 'eic' && activePreset.legend && activePreset.legendLabels ? (
-              <div className="border border-ivory/15 bg-black/35 p-3">
-                <div className="flex items-center justify-between font-ui text-[12.5px] text-beige mb-2">
+              <div className="border border-ivory/15 bg-black/35 p-3.5">
+                <div className="flex items-center justify-between font-ui text-[14px] text-beige mb-2">
                   <span className="font-semibold text-ivory">Colour Ramp</span>
                   <span>Ramp stops used for colour → pitch mapping</span>
                 </div>
                 <div
-                  className="h-3.5 w-full border border-ivory/25 shadow-inner"
+                  className="h-4.5 w-full border border-ivory/25 shadow-inner"
                   style={{
                     background: `linear-gradient(to right, ${activePreset.legend.join(', ')})`,
                   }}
                   role="img"
                   aria-label={`Color ramp from ${activePreset.legendLabels[0]} to ${activePreset.legendLabels[activePreset.legendLabels.length - 1]}`}
                 />
-                <div className="mt-1.5 flex justify-between font-ui text-[12.5px] text-cream/90">
+                <div className="mt-2 flex justify-between font-ui text-[13.5px] font-medium text-cream/90">
                   <span>{activePreset.legendLabels[0]}</span>
                   <span className="hidden sm:inline">{activePreset.legendLabels[Math.floor(activePreset.legendLabels.length / 2)]}</span>
                   <span>{activePreset.legendLabels[activePreset.legendLabels.length - 1]}</span>
                 </div>
-                <p className="mt-1.5 font-ui text-[12px] leading-snug text-beige">
+                <p className="mt-2 font-ui text-[13px] leading-snug text-beige">
                   Position along this ramp sets pitch; captions report that position, not a recovered physical value.
                 </p>
-                <p className="mt-1 font-ui text-[12px] leading-snug text-beige/80">
+                <p className="mt-1.5 font-ui text-[13px] leading-snug text-beige/80">
                   Ramp stops accompany the{' '}
                   <a
                     href={activePreset.svsUrl}
