@@ -1260,7 +1260,7 @@ export default function ImagePanel() {
             ) : null}
 
             {/* Playback Controls & Status (Right Column Aligned) */}
-            <div className="border border-ivory/15 bg-black/40 p-3 sm:p-3.5 flex flex-col gap-2.5">
+            <div className="flex flex-col gap-2.5">
               {/* Primary Action Row: Play Button & Navigation (All equal height) */}
               <div className="flex items-stretch gap-2">
                 <button
