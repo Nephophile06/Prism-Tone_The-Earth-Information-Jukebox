@@ -119,12 +119,12 @@ function PreviewStudio() {
               <SubcontinentMap />
             </div>
 
-            <div className="flex flex-col gap-3 lg:col-span-4 lg:col-start-9 lg:row-start-1 xl:col-span-3 xl:col-start-10 lg:h-full">
+            <div className="flex flex-col gap-3 lg:col-span-4 lg:col-start-9 lg:row-start-1 xl:col-span-3 xl:col-start-10 lg:h-full min-h-0">
               <PreviewToolbar />
-              <div className="relative z-30 border border-ivory/10 bg-coal/40 p-4 md:p-5">
+              <div className="relative z-30 shrink-0 border border-ivory/10 bg-coal/40 p-4 md:p-5">
                 <VariableSelector />
               </div>
-              <NowSounding className="lg:flex-1" />
+              <NowSounding className="lg:flex-1 min-h-0 h-[240px] sm:h-[260px] lg:h-auto" />
             </div>
           </div>
         </section>
