@@ -520,9 +520,11 @@ class LocalEngine {
   /** A short, one-shot phrase used by "hear summary" — never changes transport. */
   playSummary(events) {
     if (!Array.isArray(events) || !events.length) return false
-    if (this.state !== 'idle') return false
+    if (this.state !== 'idle') {
+      this.stop()
+    }
     this._boot().then((ok) => {
-      if (!ok || this.state !== 'idle') return
+      if (!ok) return
       try {
         /* stop() may have faded the bus to silence. */
         if (this.bus) this.bus.gain.rampTo(1, 0.05)
@@ -534,7 +536,7 @@ class LocalEngine {
             midiToName(ev.midi),
             Math.max(0.12, Number(ev.length) || 0.6),
             t0 + Math.max(0, Number(ev.at) || 0),
-            clamp(ev.gain === undefined ? 0.2 : ev.gain, 0.02, 0.6),
+            clamp(ev.gain === undefined ? 0.25 : ev.gain, 0.05, 0.6),
           )
         }
       } catch { /* a summary is optional — never break the UI */ }

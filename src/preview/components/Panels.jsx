@@ -6,7 +6,7 @@
  * scope and the trend, then the selection’s statistics.
  */
 
-import { memo } from 'react'
+import { memo, useState, useRef, useEffect } from 'react'
 import { usePreview } from '../state/PreviewContext'
 import { selectionSummary, sparklineWindow } from '../lib/selectors'
 import { fmtValue, fmtDelta, fmtPct, fmtTime } from '../lib/format'
@@ -17,6 +17,23 @@ import Panel from './Panel'
 
 function SummaryPanel() {
   const { state, steps, seriesMap, variable, actions } = usePreview()
+  const [summaryPlaying, setSummaryPlaying] = useState(false)
+  const summaryTimerRef = useRef(null)
+
+  const handlePlaySummary = () => {
+    actions.playSummary()
+    setSummaryPlaying(true)
+    if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current)
+    summaryTimerRef.current = setTimeout(() => {
+      setSummaryPlaying(false)
+    }, 6000)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current)
+    }
+  }, [])
 
   if (state.data.status === 'loading' || state.data.status === 'idle') {
     return (
@@ -84,13 +101,30 @@ function SummaryPanel() {
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={actions.playSummary}
-          className="inline-flex shrink-0 items-center gap-1.5 border border-ivory/40 bg-ivory/10 px-2.5 py-1 font-ui text-[12.5px] text-ivory transition-colors hover:border-ivory/70 hover:bg-ivory/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+          onClick={handlePlaySummary}
+          className={`inline-flex shrink-0 items-center gap-1.5 border px-2.5 py-1 font-ui text-[12.5px] transition-all cursor-pointer ${
+            summaryPlaying
+              ? 'border-ember bg-ember/20 text-ember'
+              : 'border-ivory/40 bg-ivory/10 text-ivory hover:border-ivory/70 hover:bg-ivory/20'
+          } focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory`}
         >
-          <svg width="8" height="9" viewBox="0 0 10 12" aria-hidden="true">
-            <path d="M1 1 L9 6 L1 11 Z" fill="currentColor" />
-          </svg>
-          Hear summary
+          {summaryPlaying ? (
+            <>
+              <span className="flex items-center gap-0.5" aria-hidden="true">
+                <span className="h-2 w-0.5 animate-pulse bg-ember" />
+                <span className="h-3 w-0.5 animate-pulse bg-ember" />
+                <span className="h-2 w-0.5 animate-pulse bg-ember" />
+              </span>
+              Playing motif (6s)
+            </>
+          ) : (
+            <>
+              <svg width="8" height="9" viewBox="0 0 10 12" aria-hidden="true">
+                <path d="M1 1 L9 6 L1 11 Z" fill="currentColor" />
+              </svg>
+              Hear summary
+            </>
+          )}
         </button>
         <span className="font-ui text-[11.5px] leading-tight text-cream/80">
           6s motif of range, mean & anomaly

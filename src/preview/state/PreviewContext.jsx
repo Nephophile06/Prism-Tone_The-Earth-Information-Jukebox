@@ -1142,11 +1142,8 @@ export function PreviewProvider({ children }) {
           return
         }
         if (engine.state !== 'idle') {
-          dispatch({
-            type: 'ANNOUNCE',
-            text: 'Playback is running. Stop it before hearing the summary, so the two sounds never overlap.',
-          })
-          return
+          engine.stop()
+          dispatch({ type: 'STOP' })
         }
         const current = stateRef.current
         const currentVariable = VARIABLE_BY_ID[current.variableId]
@@ -1168,6 +1165,17 @@ export function PreviewProvider({ children }) {
           return
         }
         const started = engine.playSummary(summary.notes)
+        dispatch({
+          type: 'CAPTION',
+          caption: {
+            text: summary.text,
+            shortText: summary.shortText,
+            label: summary.label,
+            value: summary.mean,
+            delta: summary.delta,
+            cls: 'interpretation',
+          },
+        })
         dispatch({
           type: 'ANNOUNCE',
           text: started

@@ -750,7 +750,7 @@ export function DataTablePanel() {
           Annual means · {variable.name} ({variable.unit})
         </p>
         <div
-          className="h-[330px] sm:h-[350px] md:h-[365px] lg:h-[385px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
+          className="h-[365px] sm:h-[385px] md:h-[405px] lg:h-[425px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
           data-lenis-prevent
         >
           <table className="w-full border-collapse font-ui">
