@@ -13,17 +13,17 @@ function Panel({ title, meta, actions, children, className = '' }) {
   return (
     <section className={`flex h-full flex-col border border-ivory/15 bg-coal/50 ${className}`}>
       {(title || meta || actions) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ivory/10 px-4 py-3 md:px-5">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-ivory/10 px-3.5 py-2 md:px-4 md:py-2.5">
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
             {title && (
-              <h2 className="font-stencil text-[12px] uppercase tracking-[0.2em] text-beige">{title}</h2>
+              <h2 className="font-stencil text-[11.5px] uppercase tracking-[0.18em] text-beige">{title}</h2>
             )}
-            {meta && <span className="font-ui text-[13px] text-cream">{meta}</span>}
+            {meta && <span className="font-ui text-[12px] text-cream">{meta}</span>}
           </div>
           {actions}
         </div>
       )}
-      <div className="flex-1 flex flex-col min-h-0 p-4 md:p-5">{children}</div>
+      <div className="flex-1 flex flex-col min-h-0 p-3 md:p-3.5">{children}</div>
     </section>
   )
 }

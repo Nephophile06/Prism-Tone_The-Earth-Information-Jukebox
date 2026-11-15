@@ -58,7 +58,7 @@ export default function Sparkline({ points, current = -1, normal = null, decimal
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
-        className="block h-16 w-full"
+        className="block h-10 sm:h-11 w-full"
         role="img"
         aria-label={aria}
       >
@@ -97,7 +97,7 @@ export default function Sparkline({ points, current = -1, normal = null, decimal
           />
         )}
       </svg>
-      <div className="mt-1 flex items-center justify-between gap-3 font-ui text-[12px] text-beige">
+      <div className="mt-0.5 flex items-center justify-between gap-2 font-ui text-[11px] text-beige">
         <span>{points[0] && points[0].key ? points[0].key.slice(0, 4) : 'start'}</span>
         <span>{normal !== null && normal !== undefined ? `dashed: 1991–2020 normal` : ''}</span>
         <span>{points[points.length - 1] && points[points.length - 1].key ? points[points.length - 1].key.slice(0, 4) : 'end'}</span>

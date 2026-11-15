@@ -130,11 +130,11 @@ function PreviewStudio() {
         </section>
 
         {/* Insight deck — 3-column analytical deck: Graphs, Data Summary, and Data Table */}
-        <section aria-label="Insight deck" className="grid gap-4 md:gap-6 lg:grid-cols-12 items-stretch">
-          <div className="flex flex-col h-full lg:col-span-6 xl:col-span-6">
+        <section aria-label="Insight deck" className="grid gap-4 md:gap-5 lg:grid-cols-12 items-stretch">
+          <div className="flex flex-col h-full lg:col-span-5 xl:col-span-5">
             <GraphPanel />
           </div>
-          <div className="flex flex-col h-full lg:col-span-3 xl:col-span-3">
+          <div className="flex flex-col h-full lg:col-span-4 xl:col-span-4">
             <SummaryPanel />
           </div>
           <div className="flex flex-col h-full lg:col-span-3 xl:col-span-3">

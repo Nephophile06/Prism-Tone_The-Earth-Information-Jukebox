@@ -482,7 +482,7 @@ function SeriesGraph() {
       <div className="relative">
         <canvas
           ref={canvasRef}
-          className="block h-72 sm:h-80 md:h-[330px] lg:h-[350px] w-full cursor-crosshair"
+          className="block h-48 sm:h-52 md:h-56 lg:h-[220px] w-full cursor-crosshair"
           onMouseMove={onMove}
           onMouseLeave={() => setCursor(null)}
           tabIndex={0}
@@ -661,7 +661,7 @@ function WaveformGraph() {
       </p>
       <canvas
         ref={canvasRef}
-        className="block h-52 w-full md:h-60"
+        className="block h-44 w-full md:h-48"
         role="img"
         aria-label="Real-time waveform of the generated sonification audio. When playback is stopped or paused, the line is flat."
       />
@@ -696,16 +696,16 @@ export function DataTablePanel() {
           Annual means · {variable.name} ({variable.unit})
         </p>
         <div
-          className="h-[360px] sm:h-[370px] md:h-[375px] lg:h-[392px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
+          className="h-[210px] sm:h-[220px] md:h-[230px] lg:h-[240px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
           data-lenis-prevent
         >
           <table className="w-full border-collapse font-ui">
             <thead className="sticky top-0 z-10 bg-[#161819] border-b border-ivory/20 shadow-md">
               <tr className="text-left">
-                <th scope="col" className="py-2.5 px-4 font-ui text-[14px] sm:text-[14.5px] text-ivory font-semibold">
+                <th scope="col" className="py-1 px-3 font-ui text-[12.5px] text-ivory font-semibold">
                   Year
                 </th>
-                <th scope="col" className="py-2.5 px-4 text-right font-ui text-[14px] sm:text-[14.5px] text-ivory font-semibold">
+                <th scope="col" className="py-1 px-3 text-right font-ui text-[12.5px] text-ivory font-semibold">
                   {variable.unit}
                 </th>
               </tr>
@@ -713,10 +713,10 @@ export function DataTablePanel() {
             <tbody>
               {annualTable.map((p) => (
                 <tr key={p.year} className="border-b border-ivory/10 hover:bg-white/[0.04] transition-colors">
-                  <th scope="row" className="py-2.5 px-4 text-left font-data text-[15px] sm:text-[15.5px] font-medium text-cream">
+                  <th scope="row" className="py-1 px-3 text-left font-data text-[13px] font-medium text-cream">
                     {p.year}
                   </th>
-                  <td className="py-2.5 px-4 text-right font-data text-[15px] sm:text-[15.5px] font-semibold text-ivory">
+                  <td className="py-1 px-3 text-right font-data text-[13px] font-semibold text-ivory">
                     {p.value !== null ? fmtValue(p.value, variable.decimals) : '—'}
                   </td>
                 </tr>

@@ -84,70 +84,67 @@ function SummaryPanel() {
         label={`${variable.name} trend ending at the current selection. Dashed line is the 1991–2020 normal.`}
       />
 
-      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={actions.playSummary}
-          className="inline-flex items-center gap-2 border border-ivory/40 bg-ivory/10 px-3 py-2 font-ui text-[14px] text-ivory transition-colors hover:border-ivory/70 hover:bg-ivory/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+          className="inline-flex shrink-0 items-center gap-1.5 border border-ivory/40 bg-ivory/10 px-2.5 py-1 font-ui text-[12.5px] text-ivory transition-colors hover:border-ivory/70 hover:bg-ivory/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
         >
-          <svg width="9" height="10" viewBox="0 0 10 12" aria-hidden="true">
+          <svg width="8" height="9" viewBox="0 0 10 12" aria-hidden="true">
             <path d="M1 1 L9 6 L1 11 Z" fill="currentColor" />
           </svg>
           Hear summary
         </button>
-        <span className="font-ui text-[12.5px] leading-relaxed text-cream">
-          One sentence and a short motif — the range, the mean and the comparison — before the month-by-month walk.
+        <span className="font-ui text-[11.5px] leading-tight text-cream/80">
+          6s motif of range, mean & anomaly
         </span>
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 border-t border-ivory/10">
+      <dl className="mt-2.5 grid grid-cols-2 border-t border-ivory/10">
         <SummaryStat label="Minimum" value={s.selMin} decimals={variable.decimals} unit={variable.unit} />
         <SummaryStat
           label="Maximum"
           value={s.selMax}
           decimals={variable.decimals}
           unit={variable.unit}
-          className="border-l border-ivory/10 pl-3"
+          className="border-l border-ivory/10 pl-2.5"
         />
         <SummaryStat label="Mean" value={s.selMean} decimals={variable.decimals} unit={variable.unit} />
-        <div className="border-b border-l border-ivory/10 py-2.5 pl-3">
-          <dt className="font-ui text-[13px] text-cream">
+        <div className="border-b border-l border-ivory/10 py-1 pl-2.5">
+          <dt className="font-ui text-[11.5px] text-cream">
             vs {BASELINE.start}–{BASELINE.end} normal
           </dt>
-          <dd className="mt-0.5 font-data text-[15px] text-ivory">
+          <dd className="mt-0.5 font-data text-[13px] text-ivory">
             {hasComparison ? (
               <>
                 {fmtDelta(s.delta, variable.decimals, variable.unit)}{' '}
                 {Math.abs(s.normal) > 0.05 && (
-                  <span className="font-ui text-[13px] text-cream">({fmtPct((s.delta / s.normal) * 100)})</span>
+                  <span className="font-ui text-[11.5px] text-cream">({fmtPct((s.delta / s.normal) * 100)})</span>
                 )}
               </>
             ) : (
-              <span className="font-ui text-[13px] text-cream">unavailable at this scope</span>
+              <span className="font-ui text-[11.5px] text-cream">unavailable at this scope</span>
             )}
           </dd>
         </div>
-        <div className="col-span-2 border-b border-ivory/10 py-2.5">
-          <dt className="font-ui text-[13px] text-cream">Coverage</dt>
-          <dd className="mt-0.5 font-data text-[15px] text-ivory">
+        <div className="col-span-2 border-b border-ivory/10 py-1">
+          <dt className="font-ui text-[11.5px] text-cream">Coverage</dt>
+          <dd className="mt-0.5 font-data text-[13px] text-ivory">
             {s.validCount}/{s.totalCount} periods
             {s.coverage < 1 && s.totalCount > 0 && (
-              <span className="ml-2 font-ui text-[13px] text-cream">({Math.round(s.coverage * 100)}% valid)</span>
+              <span className="ml-1.5 font-ui text-[11.5px] text-cream">({Math.round(s.coverage * 100)}% valid)</span>
             )}
           </dd>
         </div>
       </dl>
 
-      <p className="mt-3 font-ui text-[14px] leading-relaxed text-cream">
-        {variable.name} · {kindLabel}
-        <br />
-        {SOURCE.name} {SOURCE.dataset} · record {YEAR_MIN}–{YEAR_MAX}
+      <p className="mt-2 font-ui text-[11.5px] leading-tight text-cream/80">
+        {variable.name} · {kindLabel} · {SOURCE.name} {SOURCE.dataset} ({YEAR_MIN}–{YEAR_MAX})
       </p>
 
       {s.normal === null && (
-        <p className="mt-2 font-ui text-[14px] leading-relaxed text-cream">
-          The {BASELINE.start}–{BASELINE.end} comparison needs at least 75% baseline coverage at this scope, so it
-          is not shown rather than guessed.
+        <p className="mt-1 font-ui text-[11px] leading-tight text-cream/70">
+          The {BASELINE.start}–{BASELINE.end} comparison needs 75% baseline coverage at this scope.
         </p>
       )}
 
@@ -166,7 +163,7 @@ function ProvenanceStrip({ state, variable }) {
   const meta = state.data.meta || {}
   const division = state.scope.type === 'division' ? CONTINENT_BY_ID[state.scope.id] : null
   const coords = coordinateLabel(division)
-  const sample = coords ? `${coords} centroid` : 'Seven centroids · planetary mean'
+  const sample = coords ? `${coords} centroid` : '7 centroids planetary mean'
   const viaLabel = {
     backend: 'project API',
     direct: 'NASA POWER API',
@@ -176,20 +173,20 @@ function ProvenanceStrip({ state, variable }) {
   const retrieved = meta.fetchedAt ? `${fmtTime(meta.fetchedAt)} · ${viaLabel}` : viaLabel
 
   return (
-    <section aria-label="Data provenance" className="mt-4 border-t border-ivory/10 pt-3">
-      <h3 className="font-stencil text-[11px] uppercase tracking-[0.2em] text-beige">Where this comes from</h3>
-      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
-        <ProvRow label="Source" value={`${SOURCE.name} · MERRA-2 monthly`} />
+    <section aria-label="Data provenance" className="mt-2.5 border-t border-ivory/10 pt-1.5">
+      <h3 className="font-stencil text-[10.5px] uppercase tracking-[0.18em] text-beige">Where this comes from</h3>
+      <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
+        <ProvRow label="Source" value={`${SOURCE.name} · MERRA-2`} />
         <ProvRow label="Parameter" value={`${variable.param} · ${variable.headline || variable.name}`} />
         <ProvRow label="Sample" value={sample} />
-        <ProvRow label="Record" value={`${YEAR_MIN}–${YEAR_MAX} · normals ${BASELINE.start}–${BASELINE.end}`} />
+        <ProvRow label="Record" value={`${YEAR_MIN}–${YEAR_MAX} (norm ${BASELINE.start}–${BASELINE.end})`} />
         <div className="col-span-2">
-          <dt className="font-ui text-[12px] text-beige">Retrieved</dt>
-          <dd className="mt-0.5 font-data text-[12px] text-ivory">{retrieved}</dd>
+          <dt className="font-ui text-[11px] text-beige">Retrieved</dt>
+          <dd className="mt-0.5 font-data text-[11px] text-ivory truncate">{retrieved}</dd>
         </div>
       </dl>
-      <p className="mt-2 font-ui text-[12px] leading-relaxed text-cream">
-        Reanalysis values at the sample point; no area average is implied. Missing months stay missing.
+      <p className="mt-1 font-ui text-[11px] leading-tight text-cream/75">
+        Reanalysis values at sample point; no area average. Missing months stay missing.
       </p>
     </section>
   )
@@ -198,8 +195,8 @@ function ProvenanceStrip({ state, variable }) {
 function ProvRow({ label, value }) {
   return (
     <div>
-      <dt className="font-ui text-[12px] text-beige">{label}</dt>
-      <dd className="mt-0.5 font-data text-[12px] leading-snug text-ivory">{value}</dd>
+      <dt className="font-ui text-[11px] text-beige">{label}</dt>
+      <dd className="mt-0.5 font-data text-[11px] leading-tight text-ivory truncate">{value}</dd>
     </div>
   )
 }
@@ -214,9 +211,9 @@ function coordinateLabel(division) {
 function SummaryStat({ label, value, decimals, unit, className = '' }) {
   const shown = value !== null && value !== undefined
   return (
-    <div className={`border-b border-ivory/10 py-2.5 ${className}`}>
-      <dt className="font-ui text-[13px] text-cream">{label}</dt>
-      <dd className="mt-0.5 font-data text-[15px] text-ivory">
+    <div className={`border-b border-ivory/10 py-1 ${className}`}>
+      <dt className="font-ui text-[11.5px] text-cream">{label}</dt>
+      <dd className="mt-0.5 font-data text-[13px] text-ivory">
         {shown ? `${fmtValue(value, decimals)} ${unit}` : '—'}
       </dd>
     </div>
