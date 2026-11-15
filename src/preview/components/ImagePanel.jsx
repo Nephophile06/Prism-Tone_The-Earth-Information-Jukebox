@@ -788,43 +788,53 @@ export default function ImagePanel() {
                   {activePreset.description}
                 </p>
 
-                {/* Scientific Color Ramp / Legend */}
-                {activePreset.legend && activePreset.legendLabels && (
-                  <div className="border border-ivory/15 bg-black/35 p-3">
-                    <div className="flex items-center justify-between font-ui text-[12.5px] text-beige mb-2">
-                      <span className="font-semibold text-ivory">Colour Ramp</span>
-                      <span>Ramp stops used for colour → pitch mapping</span>
-                    </div>
-                    <div
-                      className="h-3.5 w-full border border-ivory/25 shadow-inner"
-                      style={{
-                        background: `linear-gradient(to right, ${activePreset.legend.join(', ')})`,
-                      }}
-                      role="img"
-                      aria-label={`Color ramp from ${activePreset.legendLabels[0]} to ${activePreset.legendLabels[activePreset.legendLabels.length - 1]}`}
-                    />
-                    <div className="mt-1.5 flex justify-between font-ui text-[11.5px] text-cream/80">
-                      <span>{activePreset.legendLabels[0]}</span>
-                      <span className="hidden sm:inline">{activePreset.legendLabels[Math.floor(activePreset.legendLabels.length / 2)]}</span>
-                      <span>{activePreset.legendLabels[activePreset.legendLabels.length - 1]}</span>
-                    </div>
-                    <p className="mt-1.5 font-ui text-[11.5px] leading-snug text-beige">
-                      Position along this ramp sets pitch; captions report that position, not a recovered physical value.
-                    </p>
-                    <p className="mt-1 font-ui text-[11.5px] leading-snug text-beige/80">
-                      Ramp stops accompany the{' '}
-                      <a
-                        href={activePreset.svsUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline decoration-ivory/30 underline-offset-2 hover:text-ivory"
-                      >
-                        NASA SVS {activePreset.svsId} frame
-                      </a>{' '}
-                      (retrieved {RETRIEVED}); they are mapping aids, not a calibrated colour bar.
-                    </p>
+                {/* Analysis Metrics Box (Computer Vision Analysis) */}
+                <div className="border border-ivory/15 bg-black/40 p-3 font-ui text-[13px]">
+                  <div className="flex items-center justify-between border-b border-ivory/10 pb-1.5 mb-2 font-data text-[12px] text-beige">
+                    <span>Computer Vision Analysis</span>
+                    <span>{analysis ? `${analysis.width} × ${analysis.height}` : 'Standby'}</span>
                   </div>
-                )}
+
+                  {analysis ? (
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-cream/90">
+                      <div className="flex justify-between">
+                        <dt className="text-beige">Mean Hue:</dt>
+                        <dd className="font-data">{fmt(analysis.mean_hue_deg, 1)}°</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-beige">Saturation:</dt>
+                        <dd className="font-data">{fmt(analysis.mean_saturation)}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-beige">Luminance / Value:</dt>
+                        <dd className="font-data">{fmt(analysis.mean_value)}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-beige">Sobel Edge Density:</dt>
+                        <dd className="font-data">{fmt(analysis.mean_edge)}</dd>
+                      </div>
+                      <div className="col-span-2 mt-1.5 flex flex-wrap justify-between gap-x-3 gap-y-1 border-t border-ivory/10 pt-1.5 font-data text-[11.5px] text-beige">
+                        <span>{analysis.scale_label || [analysis.key, analysis.scale].filter(Boolean).join(' ')}</span>
+                        <span>{analysis.tempo_bpm ? `${analysis.tempo_bpm} bpm` : 'tempo from brightness'}</span>
+                        <span>{analysis.transients ?? 0} transient{analysis.transients === 1 ? '' : 's'}</span>
+                        {analysis.scan === 'regions' && analysis.grid_tiles ? (
+                          <span>{analysis.grid_tiles} tiles · {analysis.grid_cols}×{analysis.grid_rows}</span>
+                        ) : null}
+                      </div>
+                      <div className="col-span-2 text-[11.5px] leading-snug text-beige">
+                        {analysis.color_source === 'legend'
+                          ? 'Pitch follows the colour ramp; the caption states a ramp position, not a recovered physical value.'
+                          : analysis.color_source === 'hue'
+                            ? 'No legend supplied: hue sets pitch.'
+                            : 'Low colour saturation: luminance stands in for hue and is labelled.'}
+                      </div>
+                    </dl>
+                  ) : (
+                    <p className="text-[12.5px] text-cream/70 leading-snug">
+                      Select any NASA EIC preset to inspect its computer-vision metrics (hue, luminance, Sobel edges).
+                    </p>
+                  )}
+                </div>
 
                 <div className="flex flex-wrap items-center gap-3 text-[13px] font-ui text-cream/80">
                   <div className="inline-flex items-center gap-1.5 border border-ivory/15 px-2.5 py-1">
@@ -1256,53 +1266,43 @@ export default function ImagePanel() {
               )}
             </div>
 
-            {/* Analysis Metrics Box */}
-            <div className="border border-ivory/15 bg-black/40 p-3 font-ui text-[13px]">
-              <div className="flex items-center justify-between border-b border-ivory/10 pb-1.5 mb-2 font-data text-[12px] text-beige">
-                <span>Computer Vision Analysis</span>
-                <span>{analysis ? `${analysis.width} × ${analysis.height}` : 'Standby'}</span>
-              </div>
-
-              {analysis ? (
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-cream/90">
-                  <div className="flex justify-between">
-                    <dt className="text-beige">Mean Hue:</dt>
-                    <dd className="font-data">{fmt(analysis.mean_hue_deg, 1)}°</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-beige">Saturation:</dt>
-                    <dd className="font-data">{fmt(analysis.mean_saturation)}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-beige">Luminance / Value:</dt>
-                    <dd className="font-data">{fmt(analysis.mean_value)}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-beige">Sobel Edge Density:</dt>
-                    <dd className="font-data">{fmt(analysis.mean_edge)}</dd>
-                  </div>
-                  <div className="col-span-2 mt-1.5 flex flex-wrap justify-between gap-x-3 gap-y-1 border-t border-ivory/10 pt-1.5 font-data text-[11.5px] text-beige">
-                    <span>{analysis.scale_label || [analysis.key, analysis.scale].filter(Boolean).join(' ')}</span>
-                    <span>{analysis.tempo_bpm ? `${analysis.tempo_bpm} bpm` : 'tempo from brightness'}</span>
-                    <span>{analysis.transients ?? 0} transient{analysis.transients === 1 ? '' : 's'}</span>
-                    {analysis.scan === 'regions' && analysis.grid_tiles ? (
-                      <span>{analysis.grid_tiles} tiles · {analysis.grid_cols}×{analysis.grid_rows}</span>
-                    ) : null}
-                  </div>
-                  <div className="col-span-2 text-[11.5px] leading-snug text-beige">
-                    {analysis.color_source === 'legend'
-                      ? 'Pitch follows the colour ramp above; the caption states a ramp position, not a recovered physical value.'
-                      : analysis.color_source === 'hue'
-                        ? 'No legend supplied: hue sets pitch.'
-                        : 'Low colour saturation: luminance stands in for hue and is labelled.'}
-                  </div>
-                </dl>
-              ) : (
-                <p className="text-[12.5px] text-cream/70 leading-snug">
-                  Select any NASA EIC preset to inspect its computer-vision metrics (hue, luminance, Sobel edges).
+            {/* Scientific Color Ramp / Legend */}
+            {activeTab === 'eic' && activePreset.legend && activePreset.legendLabels ? (
+              <div className="border border-ivory/15 bg-black/35 p-3">
+                <div className="flex items-center justify-between font-ui text-[12.5px] text-beige mb-2">
+                  <span className="font-semibold text-ivory">Colour Ramp</span>
+                  <span>Ramp stops used for colour → pitch mapping</span>
+                </div>
+                <div
+                  className="h-3.5 w-full border border-ivory/25 shadow-inner"
+                  style={{
+                    background: `linear-gradient(to right, ${activePreset.legend.join(', ')})`,
+                  }}
+                  role="img"
+                  aria-label={`Color ramp from ${activePreset.legendLabels[0]} to ${activePreset.legendLabels[activePreset.legendLabels.length - 1]}`}
+                />
+                <div className="mt-1.5 flex justify-between font-ui text-[11.5px] text-cream/80">
+                  <span>{activePreset.legendLabels[0]}</span>
+                  <span className="hidden sm:inline">{activePreset.legendLabels[Math.floor(activePreset.legendLabels.length / 2)]}</span>
+                  <span>{activePreset.legendLabels[activePreset.legendLabels.length - 1]}</span>
+                </div>
+                <p className="mt-1.5 font-ui text-[11.5px] leading-snug text-beige">
+                  Position along this ramp sets pitch; captions report that position, not a recovered physical value.
                 </p>
-              )}
-            </div>
+                <p className="mt-1 font-ui text-[11.5px] leading-snug text-beige/80">
+                  Ramp stops accompany the{' '}
+                  <a
+                    href={activePreset.svsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-ivory/30 underline-offset-2 hover:text-ivory"
+                  >
+                    NASA SVS {activePreset.svsId} frame
+                  </a>{' '}
+                  (retrieved {RETRIEVED}); they are mapping aids, not a calibrated colour bar.
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
 
