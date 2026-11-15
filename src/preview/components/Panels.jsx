@@ -97,17 +97,16 @@ function SummaryPanel() {
         </span>
       </div>
 
-      <dl className="mt-2.5 grid grid-cols-2 border-t border-ivory/10">
+      <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5">
         <SummaryStat label="Minimum" value={s.selMin} decimals={variable.decimals} unit={variable.unit} />
         <SummaryStat
           label="Maximum"
           value={s.selMax}
           decimals={variable.decimals}
           unit={variable.unit}
-          className="border-l border-ivory/10 pl-2.5"
         />
         <SummaryStat label="Mean" value={s.selMean} decimals={variable.decimals} unit={variable.unit} />
-        <div className="border-b border-l border-ivory/10 py-1 pl-2.5">
+        <div>
           <dt className="font-ui text-[11.5px] text-cream">
             vs {BASELINE.start}–{BASELINE.end} normal
           </dt>
@@ -124,7 +123,7 @@ function SummaryPanel() {
             )}
           </dd>
         </div>
-        <div className="col-span-2 border-b border-ivory/10 py-1">
+        <div className="col-span-2">
           <dt className="font-ui text-[11.5px] text-cream">Coverage</dt>
           <dd className="mt-0.5 font-data text-[13px] text-ivory">
             {s.validCount}/{s.totalCount} periods
@@ -160,7 +159,7 @@ function ProvenanceStrip({ state, variable }) {
   const retrieved = meta.fetchedAt ? `${fmtTime(meta.fetchedAt)} · ${viaLabel}` : viaLabel
 
   return (
-    <section aria-label="Data provenance" className="mt-2.5 border-t border-ivory/10 pt-1.5">
+    <section aria-label="Data provenance" className="mt-3">
       <h3 className="font-stencil text-[10.5px] uppercase tracking-[0.18em] text-beige">Where this comes from</h3>
       <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
         <ProvRow label="Source" value={`${SOURCE.name} · MERRA-2`} />
@@ -195,7 +194,7 @@ function coordinateLabel(division) {
 function SummaryStat({ label, value, decimals, unit, className = '' }) {
   const shown = value !== null && value !== undefined
   return (
-    <div className={`border-b border-ivory/10 py-1 ${className}`}>
+    <div className={className}>
       <dt className="font-ui text-[11.5px] text-cream">{label}</dt>
       <dd className="mt-0.5 font-data text-[13px] text-ivory">
         {shown ? `${fmtValue(value, decimals)} ${unit}` : '—'}

@@ -289,44 +289,26 @@ function SeriesGraph() {
         }
       }
 
-      // Compute smoothed curve points for a spacious ("faka"), harmonic wave
-      const smoothWindow = granularity === 'monthly' ? 16 : 3
-      const halfWin = Math.floor(smoothWindow / 2)
-      const smoothedY = (idx) => {
-        let sum = 0
-        let count = 0
-        const start = Math.max(0, idx - halfWin)
-        const end = Math.min(points.length - 1, idx + halfWin)
-        for (let j = start; j <= end; j++) {
-          const val = points[j].value
-          if (val !== null && val !== undefined) {
-            sum += val
-            count++
-          }
-        }
-        const avgVal = count > 0 ? sum / count : points[idx].value
-        return y(avgVal)
-      }
-
-      const step = granularity === 'monthly' ? 4 : 1
+      // High-resolution, continuous wave curve
+      const step = granularity === 'monthly' ? 1 : 1
       const curvePoints = []
       for (let i = 0; i < points.length; i += step) {
-        if (points[i].value !== null) {
-          curvePoints.push({ x: x(i), y: smoothedY(i) })
-        }
-      }
-      if (points.length > 0 && points[points.length - 1].value !== null) {
-        const lastIdx = points.length - 1
-        if (curvePoints[curvePoints.length - 1]?.x !== x(lastIdx)) {
-          curvePoints.push({ x: x(lastIdx), y: smoothedY(lastIdx) })
+        if (points[i].value !== null && points[i].value !== undefined) {
+          // 3-point Gaussian smoothing for organic continuity without sharp aliasing
+          const prevVal = i > 0 && points[i - 1].value !== null ? points[i - 1].value : points[i].value
+          const nextVal = i < points.length - 1 && points[i + 1].value !== null ? points[i + 1].value : points[i].value
+          const curVal = points[i].value
+          const smoothVal = 0.22 * prevVal + 0.56 * curVal + 0.22 * nextVal
+          curvePoints.push({ x: x(i), y: y(smoothVal) })
         }
       }
 
       if (curvePoints.length > 0) {
-        // Subtle gradient fill under the wave for depth
+        // Multi-stop luminous gradient fill under the wave for depth
         const grad = ctx.createLinearGradient(0, padT, 0, padT + ih)
-        grad.addColorStop(0, 'rgba(242, 237, 227, 0.12)')
-        grad.addColorStop(1, 'rgba(242, 237, 227, 0.0)')
+        grad.addColorStop(0, 'rgba(217, 140, 95, 0.20)')
+        grad.addColorStop(0.35, 'rgba(242, 237, 227, 0.08)')
+        grad.addColorStop(1, 'rgba(16, 18, 18, 0.0)')
 
         ctx.beginPath()
         ctx.moveTo(curvePoints[0].x, curvePoints[0].y)
@@ -345,9 +327,9 @@ function SeriesGraph() {
         ctx.fillStyle = grad
         ctx.fill()
 
-        // Draw the smooth airy stroke
-        ctx.strokeStyle = IVORY + '0.92)'
-        ctx.lineWidth = 1.8
+        // Crisp, refined glowing stroke
+        ctx.strokeStyle = 'rgba(245, 240, 230, 0.95)'
+        ctx.lineWidth = 1.75
         ctx.lineJoin = 'round'
         ctx.lineCap = 'round'
         ctx.beginPath()
@@ -374,9 +356,14 @@ function SeriesGraph() {
         ctx.stroke()
         ctx.setLineDash([])
         if (points[cursor].value !== null) {
+          const cy = y(points[cursor].value)
+          ctx.fillStyle = 'rgba(217, 140, 95, 0.25)'
+          ctx.beginPath()
+          ctx.arc(cx, cy, 6, 0, Math.PI * 2)
+          ctx.fill()
           ctx.fillStyle = EMBER + '1)'
           ctx.beginPath()
-          ctx.arc(cx, smoothedY(cursor), 3.5, 0, Math.PI * 2)
+          ctx.arc(cx, cy, 3, 0, Math.PI * 2)
           ctx.fill()
         }
       }
@@ -482,7 +469,7 @@ function SeriesGraph() {
       <div className="relative">
         <canvas
           ref={canvasRef}
-          className="block h-64 sm:h-72 md:h-80 lg:h-[310px] w-full cursor-crosshair"
+          className="block h-72 sm:h-80 md:h-[330px] lg:h-[350px] w-full cursor-crosshair"
           onMouseMove={onMove}
           onMouseLeave={() => setCursor(null)}
           tabIndex={0}
@@ -692,20 +679,20 @@ export function DataTablePanel() {
       }
     >
       <div className="flex flex-1 flex-col min-h-0">
-        <p className="mb-2.5 shrink-0 font-ui text-[13.5px] leading-snug text-cream/85 font-medium">
+        <p className="mb-2 shrink-0 font-ui text-[14px] leading-snug text-cream font-medium">
           Annual means · {variable.name} ({variable.unit})
         </p>
         <div
-          className="h-[280px] sm:h-[295px] md:h-[310px] lg:h-[325px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
+          className="h-[330px] sm:h-[350px] md:h-[365px] lg:h-[385px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
           data-lenis-prevent
         >
           <table className="w-full border-collapse font-ui">
             <thead className="sticky top-0 z-10 bg-[#161819] border-b border-ivory/20 shadow-md">
               <tr className="text-left">
-                <th scope="col" className="py-1 px-3 font-ui text-[12.5px] text-ivory font-semibold">
+                <th scope="col" className="py-2 px-3.5 font-ui text-[14px] sm:text-[14.5px] text-ivory font-semibold">
                   Year
                 </th>
-                <th scope="col" className="py-1 px-3 text-right font-ui text-[12.5px] text-ivory font-semibold">
+                <th scope="col" className="py-2 px-3.5 text-right font-ui text-[14px] sm:text-[14.5px] text-ivory font-semibold">
                   {variable.unit}
                 </th>
               </tr>
@@ -713,10 +700,10 @@ export function DataTablePanel() {
             <tbody>
               {annualTable.map((p) => (
                 <tr key={p.year} className="border-b border-ivory/10 hover:bg-white/[0.04] transition-colors">
-                  <th scope="row" className="py-1 px-3 text-left font-data text-[13px] font-medium text-cream">
+                  <th scope="row" className="py-2 px-3.5 text-left font-data text-[15px] sm:text-[15.5px] font-medium text-cream">
                     {p.year}
                   </th>
-                  <td className="py-1 px-3 text-right font-data text-[13px] font-semibold text-ivory">
+                  <td className="py-2 px-3.5 text-right font-data text-[15px] sm:text-[15.5px] font-semibold text-ivory">
                     {p.value !== null ? fmtValue(p.value, variable.decimals) : '—'}
                   </td>
                 </tr>
