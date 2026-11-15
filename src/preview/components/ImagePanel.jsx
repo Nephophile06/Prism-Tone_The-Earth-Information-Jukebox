@@ -1087,8 +1087,8 @@ export default function ImagePanel() {
 
             {currentCaption && (
               <div className="border-l-2 border-ember bg-black/40 pl-3 py-2 mt-2">
-                <span className="block font-data text-[11.5px] uppercase tracking-wider text-beige">Now sounding:</span>
-                <p className="mt-0.5 font-ui text-[14.5px] leading-relaxed text-ivory">
+                <span className="block font-data text-[12px] uppercase tracking-wider text-beige">Now sounding:</span>
+                <p className="mt-0.5 font-ui text-[15px] leading-relaxed text-ivory">
                   {currentCaption}
                 </p>
               </div>
@@ -1204,15 +1204,15 @@ export default function ImagePanel() {
                   role="img"
                   aria-label={`Color ramp from ${activePreset.legendLabels[0]} to ${activePreset.legendLabels[activePreset.legendLabels.length - 1]}`}
                 />
-                <div className="mt-1.5 flex justify-between font-ui text-[11.5px] text-cream/80">
+                <div className="mt-1.5 flex justify-between font-ui text-[12.5px] text-cream/90">
                   <span>{activePreset.legendLabels[0]}</span>
                   <span className="hidden sm:inline">{activePreset.legendLabels[Math.floor(activePreset.legendLabels.length / 2)]}</span>
                   <span>{activePreset.legendLabels[activePreset.legendLabels.length - 1]}</span>
                 </div>
-                <p className="mt-1.5 font-ui text-[11.5px] leading-snug text-beige">
+                <p className="mt-1.5 font-ui text-[12px] leading-snug text-beige">
                   Position along this ramp sets pitch; captions report that position, not a recovered physical value.
                 </p>
-                <p className="mt-1 font-ui text-[11.5px] leading-snug text-beige/80">
+                <p className="mt-1 font-ui text-[12px] leading-snug text-beige/80">
                   Ramp stops accompany the{' '}
                   <a
                     href={activePreset.svsUrl}
@@ -1235,7 +1235,7 @@ export default function ImagePanel() {
                   type="button"
                   onClick={() => handleListen()}
                   disabled={!playing && !canListen}
-                  className={`flex-1 h-11 px-3 sm:px-4 font-ui text-[13.5px] font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center gap-2 ${
+                  className={`flex-1 h-11 px-3 sm:px-4 font-ui text-[15.5px] font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center gap-2 ${
                     playing
                       ? 'border border-red-500/70 bg-red-950/40 text-red-200 hover:bg-red-900/50'
                       : 'border border-ember/70 bg-ember/20 text-ivory hover:border-ember hover:bg-ember/30 shadow-md shadow-amber-950/20'
@@ -1250,7 +1250,7 @@ export default function ImagePanel() {
                       type="button"
                       onClick={() => stepPreset(-1)}
                       aria-label="Previous dataset"
-                      className="border border-ivory/25 px-3 h-full font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center"
+                      className="border border-ivory/25 px-3.5 h-full font-ui text-[14.5px] font-medium text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center"
                     >
                       Prev
                     </button>
@@ -1258,7 +1258,7 @@ export default function ImagePanel() {
                       type="button"
                       onClick={() => stepPreset(1)}
                       aria-label="Next dataset"
-                      className="border-y border-r border-ivory/25 px-3 h-full font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center"
+                      className="border-y border-r border-ivory/25 px-3.5 h-full font-ui text-[14.5px] font-medium text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center"
                     >
                       Next
                     </button>
@@ -1272,7 +1272,7 @@ export default function ImagePanel() {
                     aria-pressed={autoAdvance}
                     aria-label="Play all datasets in order"
                     title="Play every curated dataset from first to last, then stop"
-                    className={`h-11 shrink-0 border px-3.5 font-ui text-[12.5px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                    className={`h-11 shrink-0 border px-3.5 font-ui text-[14.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center whitespace-nowrap ${
                       autoAdvance
                         ? 'border-ember/70 bg-ember/15 text-ivory'
                         : 'border-ivory/25 text-cream hover:border-ivory/50 hover:text-ivory'
@@ -1289,7 +1289,7 @@ export default function ImagePanel() {
                   <button
                     type="button"
                     onClick={copyShareLink}
-                    className="border border-ivory/25 px-2.5 py-1 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                    className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
                   >
                     Copy link
                   </button>
@@ -1300,7 +1300,7 @@ export default function ImagePanel() {
                     type="button"
                     onClick={openDataLink}
                     title={activePreset.dataLink.label}
-                    className="border border-ivory/25 px-2.5 py-1 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                    className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
                   >
                     Hear related POWER data
                   </button>
@@ -1309,7 +1309,7 @@ export default function ImagePanel() {
                 <button
                   type="button"
                   onClick={exportScore}
-                  className="border border-ivory/25 px-2.5 py-1 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                  className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
                 >
                   Export score
                 </button>
@@ -1317,7 +1317,7 @@ export default function ImagePanel() {
 
               {/* Active playing indicator badge */}
               {playing && (
-                <div className="inline-flex items-center gap-2 border border-ember/40 bg-ember/10 px-2.5 py-1.5 font-ui text-[12px] text-ivory">
+                <div className="inline-flex items-center gap-2 border border-ember/40 bg-ember/10 px-2.5 py-1.5 font-ui text-[13px] text-ivory">
                   <span className="h-2 w-2 rounded-full bg-ember animate-ping motion-reduce:animate-none shrink-0" />
                   <span className="truncate">
                     Playing {activeTab === 'eic' ? activePreset.shortName : activeTab === 'video' ? 'Video' : 'Image'} · {currentScan} scan
@@ -1328,7 +1328,7 @@ export default function ImagePanel() {
               )}
 
               {error && (
-                <p className="border border-ember/50 bg-ember/10 px-2.5 py-1.5 font-ui text-[12px] text-cream">
+                <p className="border border-ember/50 bg-ember/10 px-2.5 py-1.5 font-ui text-[12.5px] text-cream">
                   {error}
                 </p>
               )}
@@ -1349,7 +1349,7 @@ export default function ImagePanel() {
             <button
               type="button"
               onClick={() => setTimelineModalOpen(true)}
-              className="inline-flex items-center gap-2 border border-ivory/25 bg-ivory/10 px-3 py-1.5 font-ui text-[12.5px] font-medium text-ivory hover:border-ivory/60 hover:bg-ivory/20 transition-all cursor-pointer shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+              className="inline-flex items-center gap-2 border border-ivory/25 bg-ivory/10 px-3.5 py-1.5 font-ui text-[13.5px] font-medium text-ivory hover:border-ivory/60 hover:bg-ivory/20 transition-all cursor-pointer shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
             >
               <span>View Score Timeline</span>
               <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
