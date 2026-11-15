@@ -16,8 +16,6 @@ import SettingsDrawer from './preview/components/SettingsDrawer'
 import { GuideModal, ContinentModal } from './preview/components/Modals'
 import Toast from './preview/components/Toast'
 import { LiveRegion, usePreviewKeys } from './preview/components/Accessibility'
-import { displayKey } from './preview/lib/selectors'
-import { keyToLabel } from './preview/lib/processing'
 
 function ProgressLine() {
   const { scrollYProgress } = useScroll()
@@ -30,83 +28,10 @@ function ProgressLine() {
   )
 }
 
-/**
- * A slim transport that appears only while the map block is offscreen. It sits
- * bottom-left, clear of the floating Display and Guide buttons, and reads from
- * the same state and actions as the map controls.
- */
-function MapMiniPlayer({ visible }) {
-  const { state, actions, steps } = usePreview()
-  if (!visible || state.guideOpen || state.settingsOpen || state.continentModalOpen) return null
 
-  const key = displayKey(state, steps, state.position, state.playState)
-  const label = state.timeMode === 'range' && !key
-    ? `${state.range.startYear}–${state.range.endYear}`
-    : key
-      ? keyToLabel(key)
-      : 'Selected period'
-  const caption = state.caption || {}
-  const line = caption.shortText || caption.text || 'No caption yet.'
-  const playing = state.playState === 'playing'
-  const idle = state.playState === 'idle'
-
-  return (
-    <div
-      className="fixed bottom-4 inset-x-3 sm:inset-x-auto sm:left-6 sm:bottom-6 z-40 flex max-w-lg sm:w-[420px] items-center gap-3 border border-ivory/25 bg-[#141617]/95 px-3 py-2.5 shadow-xl shadow-black/80 backdrop-blur-md"
-      role="region"
-      aria-label="Compact playback controls"
-    >
-      <button
-        type="button"
-        onClick={playing ? actions.pause : idle ? actions.play : actions.resume}
-        aria-label={playing ? 'Pause playback' : idle ? 'Play playback' : 'Resume playback'}
-        className="flex h-10 w-10 shrink-0 items-center justify-center border border-ivory/30 text-ivory transition-colors hover:border-ivory/70 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
-      >
-        {playing ? (
-          <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
-            <rect x="1" y="1" width="3" height="10" fill="currentColor" />
-            <rect x="6" y="1" width="3" height="10" fill="currentColor" />
-          </svg>
-        ) : (
-          <svg width="11" height="12" viewBox="0 0 10 12" aria-hidden="true">
-            <path d="M1 1 L9 6 L1 11 Z" fill="currentColor" />
-          </svg>
-        )}
-      </button>
-      <button
-        type="button"
-        onClick={actions.stop}
-        disabled={idle}
-        aria-label="Stop playback"
-        className="flex h-10 w-10 shrink-0 items-center justify-center border border-ivory/25 text-ivory transition-colors hover:border-ivory/60 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
-      >
-        <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true">
-          <rect width="10" height="10" fill="currentColor" />
-        </svg>
-      </button>
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-data text-[13px] text-ivory">{label}</p>
-        <p className="truncate font-ui text-[13px] text-cream">{line}</p>
-      </div>
-    </div>
-  )
-}
 
 function PreviewStudio() {
   usePreviewKeys()
-  const mapBlockRef = useRef(null)
-  const [mapInView, setMapInView] = useState(true)
-
-  useEffect(() => {
-    const node = mapBlockRef.current
-    if (!node || typeof IntersectionObserver === 'undefined') return
-    const io = new IntersectionObserver(
-      ([entry]) => setMapInView(entry.isIntersecting),
-      { threshold: 0.04, rootMargin: '-72px 0px 0px 0px' },
-    )
-    io.observe(node)
-    return () => io.disconnect()
-  }, [])
 
   return (
     <div className="mx-auto w-full max-w-[1780px] 2xl:max-w-[1840px] px-3 sm:px-6 md:px-8 lg:px-10 xl:px-12 pb-24">
@@ -114,7 +39,7 @@ function PreviewStudio() {
 
       <div className="mt-2 sm:mt-3 flex flex-col gap-6 md:mt-4 md:gap-8">
         {/* Map block — map on left, data tracks and now sounding on right */}
-        <section ref={mapBlockRef} aria-label="Map and captions">
+        <section aria-label="Map and captions">
           <div className="grid items-start lg:items-stretch gap-x-6 gap-y-6 lg:grid-cols-12 xl:gap-x-8">
             <div className="lg:col-span-8 lg:col-start-1 lg:row-start-1 xl:col-span-9">
               <SubcontinentMap />
@@ -155,7 +80,6 @@ function PreviewStudio() {
       <GuideModal />
       <ContinentModal />
       <Toast />
-      <MapMiniPlayer visible={!mapInView} />
     </div>
   )
 }
