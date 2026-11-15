@@ -1229,13 +1229,13 @@ export default function ImagePanel() {
 
             {/* Playback Controls & Status (Right Column Aligned) */}
             <div className="border border-ivory/15 bg-black/40 p-3 sm:p-3.5 flex flex-col gap-2.5">
-              {/* Primary Action Row: Play Button & Navigation */}
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Primary Action Row: Play Button & Navigation (All equal height) */}
+              <div className="flex items-stretch gap-2">
                 <button
                   type="button"
                   onClick={() => handleListen()}
                   disabled={!playing && !canListen}
-                  className={`flex-1 min-h-[44px] px-4 font-ui text-[14px] font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center gap-2 ${
+                  className={`flex-1 h-11 px-3 sm:px-4 font-ui text-[13.5px] font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center gap-2 ${
                     playing
                       ? 'border border-red-500/70 bg-red-950/40 text-red-200 hover:bg-red-900/50'
                       : 'border border-ember/70 bg-ember/20 text-ivory hover:border-ember hover:bg-ember/30 shadow-md shadow-amber-950/20'
@@ -1245,12 +1245,12 @@ export default function ImagePanel() {
                 </button>
 
                 {activeTab === 'eic' && (
-                  <div className="flex items-center" role="group" aria-label="Dataset navigation">
+                  <div className="flex h-11 items-stretch shrink-0" role="group" aria-label="Dataset navigation">
                     <button
                       type="button"
                       onClick={() => stepPreset(-1)}
                       aria-label="Previous dataset"
-                      className="border border-ivory/25 px-2.5 py-2 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                      className="border border-ivory/25 px-3 h-full font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center"
                     >
                       Prev
                     </button>
@@ -1258,7 +1258,7 @@ export default function ImagePanel() {
                       type="button"
                       onClick={() => stepPreset(1)}
                       aria-label="Next dataset"
-                      className="border-y border-r border-ivory/25 px-2.5 py-2 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                      className="border-y border-r border-ivory/25 px-3 h-full font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center"
                     >
                       Next
                     </button>
@@ -1272,7 +1272,7 @@ export default function ImagePanel() {
                     aria-pressed={autoAdvance}
                     aria-label="Play all datasets in order"
                     title="Play every curated dataset from first to last, then stop"
-                    className={`border px-2.5 py-2 font-ui text-[12px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer ${
+                    className={`h-11 shrink-0 border px-3.5 font-ui text-[12.5px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center whitespace-nowrap ${
                       autoAdvance
                         ? 'border-ember/70 bg-ember/15 text-ivory'
                         : 'border-ivory/25 text-cream hover:border-ivory/50 hover:text-ivory'
@@ -1282,23 +1282,6 @@ export default function ImagePanel() {
                   </button>
                 )}
               </div>
-
-              {/* Status info */}
-              <p className="font-ui text-[11.5px] leading-snug text-beige">
-                {activeTab === 'eic'
-                  ? result?.live
-                    ? 'Live browser-vision score computed for this frame'
-                    : result?.fallback
-                      ? 'Live scoring unavailable — playing the checked-in score'
-                      : liveScore
-                        ? 'Live scoring selected · falls back to the checked-in score'
-                        : 'Precomputed score checked in with the frame · no network needed'
-                  : activeTab === 'video'
-                    ? result?.analysis?.synthetic
-                      ? 'Frame access was blocked, so this is an illustrative fallback — not a measurement. Upload the clip locally for a real analysis.'
-                      : 'Browser-native video sonification · sampled frames via HTML5 Canvas & Tone.js'
-                    : 'Browser-native computer vision sonification via HTML5 Canvas & Tone.js'}
-              </p>
 
               {/* Secondary Action Buttons */}
               <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-ivory/10">
