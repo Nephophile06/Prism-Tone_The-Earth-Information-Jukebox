@@ -614,9 +614,9 @@ function WaveformGraph() {
     let lastDraw = 0
     let visible = true
     const buf = new Float32Array(2048)
-    const POINT_COUNT = 80
+    const POINT_COUNT = 96
     const smoothed = new Float32Array(POINT_COUNT)
-    let currentScale = 2.4
+    let currentScale = 3.5
 
     const draw = (now = performance.now()) => {
       const analyser = engine.analyser
@@ -662,10 +662,10 @@ function WaveformGraph() {
       ctx.strokeStyle = IVORY + '0.04)'
       ctx.setLineDash([3, 4])
       ctx.beginPath()
-      ctx.moveTo(padX, mid - mid * 0.65)
-      ctx.lineTo(w - padX, mid - mid * 0.65)
-      ctx.moveTo(padX, mid + mid * 0.65)
-      ctx.lineTo(w - padX, mid + mid * 0.65)
+      ctx.moveTo(padX, mid - mid * 0.70)
+      ctx.lineTo(w - padX, mid - mid * 0.70)
+      ctx.moveTo(padX, mid + mid * 0.70)
+      ctx.lineTo(w - padX, mid + mid * 0.70)
       ctx.stroke()
       ctx.setLineDash([])
 
@@ -682,29 +682,33 @@ function WaveformGraph() {
           else if (typeof analyser.getValue === 'function') buf.set(analyser.getValue())
         } catch { /* analyser not ready */ }
 
-        // Find peak amplitude for gentle adaptive gain
+        // Find peak amplitude for adaptive gain
         let peak = 0
         for (let i = 0; i < buf.length; i++) {
           const abs = Math.abs(buf[i])
           if (abs > peak) peak = abs
         }
 
-        // Smooth, slow scaling transition so it never jumps abruptly
-        const targetScale = peak > 0.002 ? Math.min(4.2, Math.max(1.8, 0.55 / peak)) : 2.4
-        currentScale += (targetScale - currentScale) * 0.06
+        // Adaptive scaling so active audio rises prominently (reaches ~55-75% height)
+        const targetScale = peak > 0.003 ? Math.min(8.5, Math.max(2.8, 0.62 / peak)) : 3.5
+        currentScale += (targetScale - currentScale) * 0.08
 
-        // Compute gentle, smoothed points across the buffer
-        const chunkSize = Math.max(1, Math.floor(buf.length / POINT_COUNT))
-        for (let i = 0; i < POINT_COUNT; i++) {
-          let sum = 0
-          const start = i * chunkSize
-          const end = Math.min(buf.length, start + chunkSize)
-          for (let j = start; j < end; j++) {
-            sum += buf[j]
+        // Zero-crossing trigger search to stabilize waveform phase
+        let triggerIndex = 0
+        for (let i = 0; i < Math.min(800, buf.length - POINT_COUNT * 2); i++) {
+          if (buf[i] < 0 && buf[i + 1] >= 0) {
+            triggerIndex = i
+            break
           }
-          const chunkAvg = sum / (end - start || 1)
-          // Slow, smooth interpolation (0.10) prevents fast flickering or sudden jumps
-          smoothed[i] += (chunkAvg - smoothed[i]) * 0.11
+        }
+
+        const available = buf.length - triggerIndex
+        const step = Math.max(1, Math.floor(available / POINT_COUNT))
+
+        for (let i = 0; i < POINT_COUNT; i++) {
+          const raw = buf[triggerIndex + i * step] || 0
+          // Smooth interpolation dampens rapid jitter while letting true wave shapes emerge
+          smoothed[i] += (raw - smoothed[i]) * 0.22
         }
 
         // Build smooth curve coordinates
@@ -712,7 +716,7 @@ function WaveformGraph() {
         for (let i = 0; i < POINT_COUNT; i++) {
           const px = padX + (i / (POINT_COUNT - 1)) * plotW
           const amplified = Math.max(-0.95, Math.min(0.95, smoothed[i] * currentScale))
-          const py = mid + amplified * (mid * 0.68)
+          const py = mid + amplified * (mid * 0.72)
           pts.push({ x: px, y: py })
         }
 
