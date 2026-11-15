@@ -289,54 +289,112 @@ function SeriesGraph() {
         }
       }
 
-      // High-resolution, continuous wave curve
-      const step = granularity === 'monthly' ? 1 : 1
-      const curvePoints = []
-      for (let i = 0; i < points.length; i += step) {
-        if (points[i].value !== null && points[i].value !== undefined) {
-          // 3-point Gaussian smoothing for organic continuity without sharp aliasing
-          const prevVal = i > 0 && points[i - 1].value !== null ? points[i - 1].value : points[i].value
-          const nextVal = i < points.length - 1 && points[i + 1].value !== null ? points[i + 1].value : points[i].value
-          const curVal = points[i].value
-          const smoothVal = 0.22 * prevVal + 0.56 * curVal + 0.22 * nextVal
-          curvePoints.push({ x: x(i), y: y(smoothVal) })
+      // Climate benchmark: 1991–2020 normal reference line
+      if (normalByMonth) {
+        const normVals = Object.values(normalByMonth).filter((v) => typeof v === 'number')
+        if (normVals.length >= 6) {
+          const normAvg = normVals.reduce((a, b) => a + b, 0) / normVals.length
+          if (normAvg >= lo && normAvg <= hi) {
+            const ny = y(normAvg)
+            ctx.strokeStyle = 'rgba(193, 154, 91, 0.4)'
+            ctx.lineWidth = 1
+            ctx.setLineDash([4, 4])
+            ctx.beginPath()
+            ctx.moveTo(padL, ny)
+            ctx.lineTo(padL + iw, ny)
+            ctx.stroke()
+            ctx.setLineDash([])
+            ctx.fillStyle = 'rgba(193, 154, 91, 0.65)'
+            ctx.font = '10px Oxanium, monospace'
+            ctx.textAlign = 'right'
+            ctx.fillText('1991–2020 normal', padL + iw - 4, ny - 3)
+          }
         }
       }
 
-      if (curvePoints.length > 0) {
+      const isMonthly = granularity === 'monthly'
+
+      // Layer 1: Background seasonal monthly trace (subtle, fine texture)
+      if (isMonthly) {
+        ctx.beginPath()
+        let started = false
+        for (let i = 0; i < points.length; i++) {
+          if (points[i].value !== null && points[i].value !== undefined) {
+            const px = x(i)
+            const py = y(points[i].value)
+            if (!started) {
+              ctx.moveTo(px, py)
+              started = true
+            } else {
+              ctx.lineTo(px, py)
+            }
+          }
+        }
+        ctx.strokeStyle = 'rgba(242, 237, 227, 0.15)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
+
+      // Layer 2: Primary Climate Trajectory Wave (12-month rolling trend in monthly, or annual curve)
+      const trendPoints = []
+      const win = isMonthly ? 12 : 3
+      const halfWin = Math.floor(win / 2)
+
+      for (let i = 0; i < points.length; i++) {
+        if (points[i].value !== null && points[i].value !== undefined) {
+          if (isMonthly) {
+            let sum = 0
+            let count = 0
+            const start = Math.max(0, i - halfWin)
+            const end = Math.min(points.length - 1, i + halfWin)
+            for (let j = start; j <= end; j++) {
+              if (points[j].value !== null && points[j].value !== undefined) {
+                sum += points[j].value
+                count++
+              }
+            }
+            const avgVal = count > 0 ? sum / count : points[i].value
+            trendPoints.push({ x: x(i), y: y(avgVal) })
+          } else {
+            trendPoints.push({ x: x(i), y: y(points[i].value) })
+          }
+        }
+      }
+
+      if (trendPoints.length > 1) {
         // Multi-stop luminous gradient fill under the wave for depth
         const grad = ctx.createLinearGradient(0, padT, 0, padT + ih)
-        grad.addColorStop(0, 'rgba(217, 140, 95, 0.20)')
-        grad.addColorStop(0.35, 'rgba(242, 237, 227, 0.08)')
+        grad.addColorStop(0, 'rgba(217, 140, 95, 0.26)')
+        grad.addColorStop(0.45, 'rgba(242, 237, 227, 0.08)')
         grad.addColorStop(1, 'rgba(16, 18, 18, 0.0)')
 
         ctx.beginPath()
-        ctx.moveTo(curvePoints[0].x, curvePoints[0].y)
-        for (let i = 0; i < curvePoints.length - 1; i++) {
-          const p0 = curvePoints[i]
-          const p1 = curvePoints[i + 1]
+        ctx.moveTo(trendPoints[0].x, trendPoints[0].y)
+        for (let i = 0; i < trendPoints.length - 1; i++) {
+          const p0 = trendPoints[i]
+          const p1 = trendPoints[i + 1]
           const midX = (p0.x + p1.x) / 2
           const midY = (p0.y + p1.y) / 2
           ctx.quadraticCurveTo(p0.x, p0.y, midX, midY)
         }
-        const last = curvePoints[curvePoints.length - 1]
+        const last = trendPoints[trendPoints.length - 1]
         ctx.lineTo(last.x, last.y)
         ctx.lineTo(last.x, padT + ih)
-        ctx.lineTo(curvePoints[0].x, padT + ih)
+        ctx.lineTo(trendPoints[0].x, padT + ih)
         ctx.closePath()
         ctx.fillStyle = grad
         ctx.fill()
 
-        // Crisp, refined glowing stroke
-        ctx.strokeStyle = 'rgba(245, 240, 230, 0.95)'
-        ctx.lineWidth = 1.75
+        // Crisp, refined primary trajectory line
+        ctx.strokeStyle = 'rgba(247, 243, 235, 0.98)'
+        ctx.lineWidth = 2.2
         ctx.lineJoin = 'round'
         ctx.lineCap = 'round'
         ctx.beginPath()
-        ctx.moveTo(curvePoints[0].x, curvePoints[0].y)
-        for (let i = 0; i < curvePoints.length - 1; i++) {
-          const p0 = curvePoints[i]
-          const p1 = curvePoints[i + 1]
+        ctx.moveTo(trendPoints[0].x, trendPoints[0].y)
+        for (let i = 0; i < trendPoints.length - 1; i++) {
+          const p0 = trendPoints[i]
+          const p1 = trendPoints[i + 1]
           const midX = (p0.x + p1.x) / 2
           const midY = (p0.y + p1.y) / 2
           ctx.quadraticCurveTo(p0.x, p0.y, midX, midY)
