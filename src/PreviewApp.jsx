@@ -4,7 +4,7 @@ import { useLenisScroll } from './hooks/useLenisScroll'
 
 import Nav from './components/Nav'
 import { PreviewProvider, usePreview } from './preview/state/PreviewContext'
-import { PreviewToolbar, StatusBanner, SourceBar } from './preview/components/Chrome'
+import { PreviewToolbar, StatusBanner } from './preview/components/Chrome'
 import VariableSelector from './preview/components/VariableSelector'
 import SubcontinentMap from './preview/components/SubcontinentMap'
 import { SummaryPanel } from './preview/components/Panels'
@@ -148,9 +148,6 @@ function PreviewStudio() {
 
         {/* How the current variable becomes sound */}
         <MappingPanel />
-
-        {/* Attribution & sources */}
-        <SourceBar />
       </div>
 
       <LiveRegion />
