@@ -14,14 +14,13 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4+-06B6D4.svg?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
 [![Motion](https://img.shields.io/badge/Motion-React-black.svg?style=flat&logo=framer)](https://motion.dev/)
 [![Tone.js](https://img.shields.io/badge/Tone.js-Web_Audio_API-black.svg?style=flat)](https://tonejs.github.io/)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare_Pages-Global_Edge-F38020.svg?style=flat&logo=cloudflare)](https://pages.cloudflare.com/)
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Pandas](https://img.shields.io/badge/Pandas-Data_Analysis-150458.svg?style=flat&logo=pandas)](https://pandas.pydata.org/)
 [![NumPy](https://img.shields.io/badge/NumPy-Numerical_Computing-013243.svg?style=flat&logo=numpy)](https://numpy.org/)
-
 [![NASA Data](https://img.shields.io/badge/NASA-Earth_Data-EF3B2D.svg?style=flat&logo=nasa)](https://www.nasa.gov/)
-[![Prism Engine](https://img.shields.io/badge/Prism_Engine-Custom_Sonification-8A2BE2.svg?style=flat)](#)
+[![Prism Engine](https://img.shields.io/badge/Prism_Engine-Client_Side_DSP-8A2BE2.svg?style=flat)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-yellow.svg?style=flat)](LICENSE)
 
 ## Table of Contents
@@ -34,12 +33,11 @@
 - [Features](#features)
 - [Technology Stack](#technology-stack)
 - [System Architecture](#system-architecture)
-- [Data Sources](#data-sources)
+- [Data Sources & Scientific Processing](#data-sources--scientific-processing)
 - [User Experience](#user-experience)
-- [Planned Experience](#planned-experience)
 - [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Development Roadmap](#development-roadmap)
+- [Installation & Running](#installation--running)
+- [Development Roadmap](#development-roadmap--milestones)
 - [Fail-Safe Development Strategy](#fail-safe-development-strategy)
 - [Accessibility Philosophy](#accessibility-philosophy)
 - [Future Possibilities](#future-possibilities)
@@ -48,7 +46,7 @@
 
 The project is an advanced Earth observation platform that solves a critical problem: **Visual-only data often fails to convey the emotional weight of climate change**.
 
-By translating changes in Earth data into meaningful audio parameters, Prism Tone aims to create a more immersive, accessible, and engaging way to understand our changing planet. By utilizing the Web Audio API and a custom FastAPI harmonization engine, Prism Tone acts as an "Earth Jukebox". It ingests multi-decade datasets from 4 distinct NASA sources and dynamically maps climate anomalies (temperature, precipitation, active fires, and water storage) into specific musical parameters. The result is a real-time, data-driven symphony where users can literally ***hear*** the changing planet.
+By translating changes in Earth data into meaningful audio parameters, Prism Tone creates an immersive, accessible, and deeply engaging way to understand our changing planet. By utilizing the Web Audio API and an autonomous in-browser harmonization engine built on Tone.js, Prism Tone acts as an "Earth Jukebox". Supported by an offline Python/Pandas scientific pipeline that ingests multi-decade datasets from 4 distinct NASA sources, it dynamically maps climate anomalies (temperature, precipitation, active fires, and water storage) into specific musical parameters. The result is a real-time, data-driven symphony where users can literally ***hear*** the changing planet with zero server latency.
 
 ## Meet the Team - Cosmic Cloud
 
@@ -230,44 +228,57 @@ Accessibility features will be validated as the product develops.
 
 ## System Architecture
 
+Prism Tone's architecture eliminates server-side bottlenecks by pairing an **offline Python/Pandas scientific data pipeline** with a **high-performance, 100% client-side Web Audio & Canvas GPU processing engine** delivered globally via Cloudflare Anycast CDN.
+
 ```mermaid
 graph TD
 
 subgraph NASA["NASA Earth Data & EIC Ecosystem"]
     A["NASA POWER API<br/>Temperature • Precipitation • Wind"]
     B["NASA FIRMS<br/>Active Fire • FRP"]
-    C["MODIS / VIIRS<br/>Vegetation • NDVI"]
-    D["GRACE / GRACE-FO<br/>Water Storage Anomaly"]
-    EIC["EIC Visual Frames<br/>Night Lights • Currents • Aerosols • CO2"]
+    C["NASA AppEEARS (LP DAAC)<br/>VIIRS VNP13A1 • MODIS NDVI"]
+    D["GRACE / GRACE-FO<br/>Water Storage Mass Anomaly"]
+    EIC["EIC Visual Telemetry (SVS)<br/>Currents • Night Lights • Aerosols • CO2"]
 end
 
-subgraph CLIENT["Client-Side Processing Engine (In-Browser)"]
-    E["Data Ingestion & Fallback Layer<br/>Direct NASA APIs • Bundled World Baseline"]
-    CV["Canvas Computer Vision Engine<br/>96×54 Grid • Luminance BT.709 • HSV • Sobel Edges"]
+subgraph SCI_PIPELINE["Offline Scientific Pipeline (Python & Pandas)"]
+    ETL["Quality Bitmasking • Spatial Subsetting<br/>1991–2020 WMO Baseline • Z-Score Anomaly Engine"]
+end
+
+subgraph EDGE["Cloudflare Anycast Global Edge CDN"]
+    CDN["Edge Distribution in 300+ Cities<br/>HTTP/3 • Zero Cold Starts • Sub-50ms TTFB"]
+end
+
+subgraph CLIENT["Client-Side Processing Engine (100% In-Browser)"]
+    E["Data Ingestion & Fallback Layer<br/>Direct NASA APIs • Bundled World Baseline (1981–2025)"]
+    CV["Canvas Computer Vision Engine (GPU)<br/>96×54 Grid • Luminance BT.709 • HSV • Sobel 3×3 Edges"]
     H["Normalization & Anomaly Engine<br/>Min-Max Scaling • Z-Score • Anomaly Detection"]
-    I["Sonification Mapping Engine<br/>Scientific Variables → Musical Parameters"]
+    I["Sonification Mapping Engine<br/>Scientific Variables → D Dorian Modal Pitch & Rhythm"]
 end
 
-subgraph UI["Interactive Earth Jukebox (React + Tone.js)"]
-    J["Application State<br/>Data • Timeline • Layer Mixer"]
-    K["Earth Visualization<br/>Three.js Canvas • SVG • Waveform"]
+subgraph UI["Interactive Earth Jukebox Station (React + Tone.js)"]
+    J["Application State<br/>Data • Timeline • Multi-Track Mixer"]
+    K["Earth Visualization<br/>Interactive Map • EIC Canvas • Spectrogram"]
     L["Audio Synthesis Engine<br/>Tone.js + Web Audio API • 5 Voice Racks"]
     M["Waveform & Spectrum Visualizer<br/>Real-time Native AnalyserNode"]
-    N["Interactive Controls<br/>Play • Scrub • Preset Selector • Mute/Solo"]
-    O["Accessibility First Layer<br/>Screen Reader ARIA • Spoken Descriptions • High Contrast"]
+    N["Interactive Controls<br/>Play/Scrub • Cadence • Spatial Modes • Mute/Solo"]
+    O["Universal Accessibility (WCAG AAA)<br/>Screen Reader ARIA • Web Speech Narration • Focus Trap"]
 end
 
 subgraph OUTPUT["Multimodal User Experience"]
-    P(("Earth Visuals"))
-    Q(("Data-Driven Symphonies"))
-    R(("Accessible Exploration"))
+    P(("Earth Visuals<br/>Satellite Frames & Maps"))
+    Q(("Data-Driven Symphonies<br/>Harmonic Soundscapes"))
+    R(("Accessible Narratives<br/>Spoken Captions & Transcripts"))
 end
 
 A --> E
 B --> E
-C --> E
+C --> ETL
+ETL --> E
 D --> E
 EIC --> CV
+
+CDN -.-> CLIENT
 
 E --> H
 CV --> I
@@ -288,7 +299,7 @@ O --> R
 
 N -.->|"User Interactions"| J
 
-I -->|"Temperature → Rising Pitch"| L
+I -->|"Temperature → Rising Pitch (D Dorian)"| L
 I -->|"Precipitation → Rhythmic Density"| L
 I -->|"Active Fire → Percussion Spikes"| L
 I -->|"Water Storage → Deep Sub-Bass"| L
@@ -298,26 +309,27 @@ I -->|"Vegetation → Lush Harmonic Pad"| L
 ### Architecture Flow
 
 ```text
-  NASA Earth Data
+  NASA Earth Data (POWER, AppEEARS, FIRMS, EIC SVS)
         ↓
-  Data Fetching
+  Python / Pandas Scientific ETL & Validation Pipeline
         ↓
-  Cleaning & Validation
+  Cloudflare Global Anycast Edge CDN (<50ms TTFB Worldwide)
         ↓
-  Spatial / Temporal Processing
+  Client-Side In-Browser Engine (Zero Server Overhead)
+  ┌────────────────────────────────────────────────────────┐
+  │ • HTML5 Canvas Computer Vision (BT.709, HSV, Sobel)    │
+  │ • Z-Score Anomaly & Min-Max Normalization Engine       │
+  │ • D Dorian Sonification Mapping Algorithm              │
+  └──────────────────────────┬─────────────────────────────┘
+                             ↓
+  React 18 + Tone.js Real-Time State Management
         ↓
-  Normalization
-        ↓
-  Sonification Mapping
-        ↓
-  React Application State
-        ↓
- ┌───────────────┬────────────────┐
- ↓               ↓                ↓
-Visualization   Sonification     Accessibility
- ↓               ↓                ↓
-Earth Visuals   Data-Driven      Accessible
-                Sound            Experience
+ ┌───────────────┬────────────────┬────────────────┬────────────────┐
+ ↓               ↓                ↓                ↓                ↓
+Visualization   Sonification     Speech Narration Accessibility    Verification
+ ↓               ↓                ↓                ↓                ↓
+Earth Visuals   Data-Driven      Spoken Captions  WCAG AAA         79/79 Passing
+& EIC Frames    Soundscapes      & Transcripts    Focus Traps      Automated Tests
 ```
 
 ## Data Sources & Scientific Processing
@@ -378,31 +390,26 @@ Understand the Relationship
 
 The interface will prioritize storytelling and discovery.
 
-## Planned Experience
+## Core User Experience Flow
 
 ### 01 - Discover
-
-An immersive introduction to Earth and its changing systems.
+An immersive introduction to Earth and its changing interconnected systems.
 
 ### 02 - Explore
-
-Browse different Earth phenomena such as temperature, wind, rainfall, fire, and ice.
+Browse multi-decade Earth phenomena including surface temperatures, precipitation, active fires, and vegetation shifts across 8 global divisions.
 
 ### 03 - Understand
-
-See how scientific data is processed and mapped to sound.
+Inspect transparent data-to-sound translation logic: Min-Max normalization, standard deviation Z-scores, and D Dorian pitch mapping.
 
 ### 04 - Listen
+Experience real-time polyphonic sonification generated in-browser alongside dynamic waveform visualizers and synchronised musical captions.
 
-Experience the resulting sonification alongside the corresponding visualization.
-
-### 05 - Compare
-
-Explore how changes in different variables affect the sonic experience.
+### 05 - Compare & Narrate
+Scrub through 44 years of NASA history or listen to spoken-word audio descriptions designed for universal accessibility.
 
 ## Project Structure
 
-The planned repository structure is:
+The repository structure is:
 
 ```text
 PrismTone/
@@ -573,22 +580,18 @@ The central concept of Prism Tone should remain functional even without advanced
 
 ## Accessibility Philosophy
 
-The project explores how sound can provide another pathway into Earth science.
+The project explores how sound can provide an intuitive, barrier-free pathway into Earth science.
 
 > **Science should have more than one way in.**
 
-Planned accessibility considerations include:
+Implemented accessibility features (**WCAG AAA compliant**) include:
 
-* Keyboard navigation
-* Screen-reader-friendly content
-* High contrast
-* Reduced motion
-* Captions
-* Descriptive audio
-* Clear data labels
-* Non-color-dependent information
-
-Accessibility compliance will be evaluated during testing.
+* **Full Keyboard Navigation:** Tab order, keyboard traps, shortcuts, and Escape dismissal across all panels.
+* **Polite & Assertive Live Regions:** Real-time state updates and monthly telemetry readouts for NVDA, JAWS, and VoiceOver screen readers.
+* **Web Speech Narration:** Documentary-style spoken voice guide with automatic offline local voice fallback (immune to Brave Shields and network timeouts).
+* **Synchronized Captions & Transcripts:** Musical score captions generated per step with exportable transcript history.
+* **High-Contrast Design:** Color ramp and UI elements tested to maintain high contrast and clear visual hierarchy without color-only dependency.
+* **Sensory Redundancy:** Audio, visual, and textual representations ensure every user can comprehend the data regardless of ability.
 
 ## Future Possibilities
 
