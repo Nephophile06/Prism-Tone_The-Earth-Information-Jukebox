@@ -11,7 +11,7 @@ import { memo, useState, useEffect } from 'react'
 import { usePreview } from '../state/PreviewContext'
 import { fmtValue, fmtDelta } from '../lib/format'
 import { BASELINE } from '../data/datasets'
-import { cancelSpeech, getBestVoice, isSpeechSupported } from '../lib/speech'
+import { cancelSpeech, isSpeechSupported, pauseSpeech, resumeSpeech, speak } from '../lib/speech'
 
 function clock(ms) {
   try {
@@ -63,24 +63,16 @@ function Transcript() {
     }
 
     if (voiceState === 'paused') {
-      try {
-        window.speechSynthesis.resume()
-        setVoiceState('playing')
-        actions.announce('Resumed transcript narration.')
-      } catch {
-        setVoiceState('idle')
-      }
+      resumeSpeech()
+      setVoiceState('playing')
+      actions.announce('Resumed transcript narration.')
       return
     }
 
     if (voiceState === 'playing') {
-      try {
-        window.speechSynthesis.pause()
-        setVoiceState('paused')
-        actions.announce('Paused transcript narration.')
-      } catch {
-        setVoiceState('idle')
-      }
+      pauseSpeech()
+      setVoiceState('paused')
+      actions.announce('Paused transcript narration.')
       return
     }
 
@@ -89,8 +81,6 @@ function Transcript() {
       actions.announce('No captions have been recorded yet this session.')
       return
     }
-
-    cancelSpeech()
 
     const spokenText = `Session transcript with ${entries.length} caption${entries.length === 1 ? '' : 's'}. ` +
       entries.map((e, idx) => {
@@ -101,28 +91,18 @@ function Transcript() {
         return `Entry ${idx + 1}: ${timePart}${valPart}. ${e.text}`
       }).join(' ')
 
-    const utterance = new window.SpeechSynthesisUtterance(spokenText)
-    const voice = getBestVoice(state.settings?.voiceURI)
-    if (voice) {
-      utterance.voice = voice
-      utterance.lang = voice.lang || 'en-US'
-    } else {
-      utterance.lang = 'en-US'
+    const started = speak(spokenText, {
+      volume: Math.min(1, Math.max(0.1, Number(state.volume) || 1)),
+      voiceURI: state.settings?.voiceURI,
+      onStart: () => setVoiceState('playing'),
+      onEnd: () => setVoiceState('idle'),
+      onError: () => setVoiceState('idle'),
+    })
+
+    if (started) {
+      setVoiceState('playing')
+      actions.announce('Reading transcript aloud.')
     }
-    utterance.rate = 0.95
-    utterance.pitch = 1.02
-    utterance.volume = Math.min(1, Math.max(0.1, Number(state.volume) || 1))
-
-    utterance.onend = () => setVoiceState('idle')
-    utterance.onerror = () => setVoiceState('idle')
-
-    try {
-      window.speechSynthesis.resume()
-    } catch {}
-
-    window.speechSynthesis.speak(utterance)
-    setVoiceState('playing')
-    actions.announce('Reading transcript aloud.')
   }
 
   const handleStopVoice = () => {

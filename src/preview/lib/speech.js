@@ -13,6 +13,54 @@
  */
 
 let currentUtterance = null
+let keepAliveTimer = null
+
+// Guard against V8 garbage collection mid-speech (Chromium bug 753177)
+if (typeof window !== 'undefined' && !window.__pt_speech_utterances) {
+  window.__pt_speech_utterances = new Set()
+}
+
+function startKeepAlive() {
+  stopKeepAlive()
+  if (typeof window === 'undefined' || !window.speechSynthesis) return
+  keepAliveTimer = setInterval(() => {
+    if (!currentUtterance) {
+      stopKeepAlive()
+      return
+    }
+    try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume()
+      }
+    } catch {
+      /* ignore */
+    }
+  }, 5000)
+}
+
+function stopKeepAlive() {
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer)
+    keepAliveTimer = null
+  }
+}
+
+/**
+ * Detects if the current environment is the Brave browser.
+ * Brave Shields block Google Cloud TTS network endpoints (used by 'Google US English'),
+ * which causes speech to fail silently or timeout unless local offline voices are used.
+ */
+export function isBraveBrowser() {
+  if (typeof navigator === 'undefined') return false
+  try {
+    return Boolean(
+      (navigator.brave && typeof navigator.brave === 'object') ||
+      (navigator.userAgent && /brave/i.test(navigator.userAgent))
+    )
+  } catch {
+    return false
+  }
+}
 
 export function isSpeechSupported() {
   return typeof window !== 'undefined'
@@ -26,12 +74,34 @@ export function isSpeaking() {
 }
 
 export function cancelSpeech() {
+  stopKeepAlive()
   currentUtterance = null
   if (!isSpeechSupported()) return
   try {
     window.speechSynthesis.cancel()
+    if (typeof window !== 'undefined' && window.__pt_speech_utterances) {
+      window.__pt_speech_utterances.clear()
+    }
   } catch {
     /* nothing to cancel or the engine is unavailable */
+  }
+}
+
+export function pauseSpeech() {
+  if (!isSpeechSupported()) return
+  try {
+    window.speechSynthesis.pause()
+  } catch {
+    /* ignore */
+  }
+}
+
+export function resumeSpeech() {
+  if (!isSpeechSupported()) return
+  try {
+    window.speechSynthesis.resume()
+  } catch {
+    /* ignore */
   }
 }
 
@@ -53,10 +123,8 @@ export function getAvailableVoices() {
 
 /**
  * Resolves the most natural-sounding human voice available in the browser.
- * Modern browsers (Edge, Chrome, Safari) include high-fidelity Neural/Natural
- * voices (e.g. Microsoft Jenny/Aria Natural, Google US English, Apple Enhanced).
- * This function prioritizes those and explicitly avoids legacy robotic SAPI voices
- * (such as Microsoft David).
+ * In Brave, local offline voices (e.g. Microsoft Zira / localService: true) are
+ * prioritized over Google Cloud TTS voices, which Brave Shields block by default.
  */
 export function getBestVoice(preferredURI = '') {
   if (!isSpeechSupported()) return null
@@ -66,12 +134,38 @@ export function getBestVoice(preferredURI = '') {
     const voices = synth.getVoices()
     if (!Array.isArray(voices) || voices.length === 0) return null
 
+    const inBrave = isBraveBrowser()
+
     // If a specific preferred voice was chosen
     if (preferredURI) {
       const matched = voices.find(
         (v) => (v.voiceURI && v.voiceURI === preferredURI) || v.name === preferredURI
       )
       if (matched) return matched
+    }
+
+    // In Brave: Shields block external network calls to Google's cloud TTS servers.
+    // We prioritize local offline voices (Microsoft Zira, localService: true, Apple local)
+    // so narration works seamlessly without shield interference.
+    if (inBrave) {
+      const localZira = voices.find((v) => /zira/i.test(v.name))
+      if (localZira) return localZira
+
+      const localServiceVoice = voices.find(
+        (v) => (v.lang.startsWith('en') || v.lang === 'en-US') && v.localService === true && !/david|mark desktop/i.test(v.name)
+      )
+      if (localServiceVoice) return localServiceVoice
+
+      const appleLocal = voices.find(
+        (v) => (v.lang.startsWith('en') || v.lang === 'en-US') &&
+               /samantha|serena|karen|daniel|siri/i.test(v.name)
+      )
+      if (appleLocal) return appleLocal
+
+      const nonGoogle = voices.find(
+        (v) => (v.lang.startsWith('en') || v.lang === 'en-US') && !/google/i.test(v.name)
+      )
+      if (nonGoogle) return nonGoogle
     }
 
     // 1. Top priority: Azure / Edge Online Natural voices (Jenny, Aria, Guy, Ava)
@@ -88,16 +182,18 @@ export function getBestVoice(preferredURI = '') {
     )
     if (naturalAny) return naturalAny
 
-    // 3. Google Voices in Chrome ("Google US English", "Google UK English Female")
-    const googleUs = voices.find(
-      (v) => /google/i.test(v.name) && (/us english/i.test(v.name) || /uk english female/i.test(v.name))
-    )
-    if (googleUs) return googleUs
+    // 3. Google Voices in Chrome (if NOT Brave)
+    if (!inBrave) {
+      const googleUs = voices.find(
+        (v) => /google/i.test(v.name) && (/us english/i.test(v.name) || /uk english female/i.test(v.name))
+      )
+      if (googleUs) return googleUs
 
-    const googleAny = voices.find(
-      (v) => (v.lang.startsWith('en') || v.lang === 'en-US') && /google/i.test(v.name)
-    )
-    if (googleAny) return googleAny
+      const googleAny = voices.find(
+        (v) => (v.lang.startsWith('en') || v.lang === 'en-US') && /google/i.test(v.name)
+      )
+      if (googleAny) return googleAny
+    }
 
     // 4. Apple Enhanced / Premium voices (macOS / iOS)
     const appleEnhanced = voices.find(
@@ -106,7 +202,7 @@ export function getBestVoice(preferredURI = '') {
     )
     if (appleEnhanced) return appleEnhanced
 
-    // 5. Windows Zira (much smoother and warmer than robotic David)
+    // 5. Windows Zira (smooth and clear)
     const zira = voices.find((v) => /zira/i.test(v.name))
     if (zira) return zira
 
@@ -142,10 +238,10 @@ if (typeof window !== 'undefined' && typeof window.speechSynthesis !== 'undefine
 
 /**
  * @param {string} text
- * @param {{ volume?: number, voiceURI?: string }} options
+ * @param {{ volume?: number, voiceURI?: string, onStart?: () => void, onEnd?: () => void, onError?: (err?: any) => void }} options
  * @returns {boolean} whether an utterance was started
  */
-export function speak(text, { volume = 1, voiceURI = '' } = {}) {
+export function speak(text, { volume = 1, voiceURI = '', onStart, onEnd, onError } = {}) {
   if (!text || !isSpeechSupported()) return false
   const level = Math.min(1, Math.max(0, Number(volume)))
   if (!(level > 0)) return false
@@ -170,13 +266,49 @@ export function speak(text, { volume = 1, voiceURI = '' } = {}) {
     utterance.volume = level
     currentUtterance = utterance
 
-    const release = () => {
-      if (currentUtterance === utterance) currentUtterance = null
+    // Prevent V8 garbage collection mid-speech (Chromium bug 753177)
+    if (typeof window !== 'undefined' && window.__pt_speech_utterances) {
+      window.__pt_speech_utterances.add(utterance)
     }
-    utterance.onend = release
-    utterance.onerror = release
 
-    /* Chrome can be left paused after cancel(); resume before speaking so the
+    const release = (err) => {
+      stopKeepAlive()
+      if (typeof window !== 'undefined' && window.__pt_speech_utterances) {
+        window.__pt_speech_utterances.delete(utterance)
+      }
+      if (currentUtterance === utterance) currentUtterance = null
+      if (err) {
+        if (typeof onError === 'function') onError(err)
+      } else {
+        if (typeof onEnd === 'function') onEnd()
+      }
+    }
+
+    utterance.onstart = () => {
+      startKeepAlive()
+      if (typeof onStart === 'function') onStart()
+    }
+    utterance.onend = () => release(null)
+    utterance.onerror = (e) => {
+      // In Brave or when shields block cloud voices, error is often 'network'
+      // If we failed with a remote cloud voice, try once immediately with a local offline voice
+      if (e && e.error === 'network' && voice && !voice.localService) {
+        try {
+          const localFallback = getAvailableVoices().find((v) => v.localService) ||
+            getAvailableVoices().find((v) => /zira|david/i.test(v.name))
+          if (localFallback && localFallback.voiceURI !== voice.voiceURI) {
+            release(null)
+            speak(text, { volume: level, voiceURI: localFallback.voiceURI, onStart, onEnd, onError })
+            return
+          }
+        } catch {
+          /* ignore fallback error */
+        }
+      }
+      release(e)
+    }
+
+    /* Chrome/Brave can be left paused after cancel(); resume before speaking so the
        first sentence is not swallowed. */
     try {
       synth.resume()
@@ -187,6 +319,7 @@ export function speak(text, { volume = 1, voiceURI = '' } = {}) {
     return true
   } catch {
     currentUtterance = null
+    stopKeepAlive()
     return false
   }
 }

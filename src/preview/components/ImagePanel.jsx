@@ -20,7 +20,7 @@ import { fetchImageScore, fetchVideoScore } from '../api/sonify'
 import { engine } from '../lib/sonify'
 import { EIC_PRESETS, getPresetScore } from '../data/eicPresets'
 import { scoreLengthBeats } from '../lib/score'
-import { cancelSpeech, getBestVoice, isSpeechSupported } from '../lib/speech'
+import { cancelSpeech, isSpeechSupported, speak } from '../lib/speech'
 import Panel from './Panel'
 
 const SCAN_MODES = [
@@ -686,29 +686,17 @@ export default function ImagePanel() {
       return
     }
 
-    cancelSpeech()
+    const started = speak(textToSpeak, {
+      volume: Math.min(1, Math.max(0.1, Number(state.volume) || 1)),
+      voiceURI: state.settings?.voiceURI,
+      onStart: () => setDescribing(true),
+      onEnd: () => setDescribing(false),
+      onError: () => setDescribing(false),
+    })
 
-    const utterance = new window.SpeechSynthesisUtterance(textToSpeak)
-    const voice = getBestVoice(state.settings?.voiceURI)
-    if (voice) {
-      utterance.voice = voice
-      utterance.lang = voice.lang || 'en-US'
-    } else {
-      utterance.lang = 'en-US'
+    if (started) {
+      setDescribing(true)
     }
-    utterance.rate = 0.95
-    utterance.pitch = 1.02
-    utterance.volume = Math.min(1, Math.max(0.1, Number(state.volume) || 1))
-
-    utterance.onend = () => setDescribing(false)
-    utterance.onerror = () => setDescribing(false)
-
-    try {
-      window.speechSynthesis.resume()
-    } catch {}
-
-    window.speechSynthesis.speak(utterance)
-    setDescribing(true)
     actions.announce(textToSpeak)
   }
 

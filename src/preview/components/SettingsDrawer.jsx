@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom'
 import { usePreview } from '../state/PreviewContext'
 import { CAPTION_SIZES, DEFAULT_SETTINGS } from '../lib/settings'
 import { SHORTCUTS } from './Accessibility'
-import { getAvailableVoices, speak } from '../lib/speech'
+import { getAvailableVoices, isBraveBrowser, speak } from '../lib/speech'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])'
@@ -228,25 +228,33 @@ export default function SettingsDrawer() {
                   </button>
                 </div>
                 {voices.length > 0 ? (
-                  <select
-                    id="pt-voice-select"
-                    value={settings.voiceURI || ''}
-                    onChange={(e) => set('voiceURI', e.target.value)}
-                    className="w-full border border-ivory/20 bg-coal/90 px-2 py-1.5 font-ui text-[12.5px] text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
-                  >
-                    <option value="">Auto: Best Natural / Neural Voice (Recommended)</option>
-                    {voices.map((v) => {
-                      const isNatural = /natural|neural|online|google|enhanced|premium/i.test(v.name)
-                      return (
-                        <option key={v.voiceURI || v.name} value={v.voiceURI || v.name}>
-                          {isNatural ? '★ ' : ''}{v.name} ({v.lang})
-                        </option>
-                      )
-                    })}
-                  </select>
+                  <>
+                    <select
+                      id="pt-voice-select"
+                      value={settings.voiceURI || ''}
+                      onChange={(e) => set('voiceURI', e.target.value)}
+                      className="w-full border border-ivory/20 bg-coal/90 px-2 py-1.5 font-ui text-[12.5px] text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                    >
+                      <option value="">Auto: Best Natural / Offline Voice (Recommended)</option>
+                      {voices.map((v) => {
+                        const isNatural = /natural|neural|online|google|enhanced|premium/i.test(v.name)
+                        const isOffline = Boolean(v.localService || /zira|david|sapi|desktop/i.test(v.name))
+                        return (
+                          <option key={v.voiceURI || v.name} value={v.voiceURI || v.name}>
+                            {isNatural ? '★ ' : ''}{v.name} ({v.lang}){isOffline ? ' · Offline' : ''}
+                          </option>
+                        )
+                      })}
+                    </select>
+                    {isBraveBrowser() && (
+                      <p className="font-ui text-[11px] text-amber-200/90 leading-relaxed">
+                        Tip for Brave: Shields can block Google cloud voices. Auto selects local offline voices (e.g. Microsoft Zira) for reliable playback.
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <p className="font-ui text-[11.5px] text-beige">
-                    Using browser default natural voice.
+                    Using browser default voice.
                   </p>
                 )}
               </div>
