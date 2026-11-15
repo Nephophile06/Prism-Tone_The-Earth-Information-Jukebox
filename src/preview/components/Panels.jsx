@@ -97,40 +97,41 @@ function SummaryPanel() {
         </span>
       </div>
 
-      <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5">
-        <SummaryStat label="Minimum" value={s.selMin} decimals={variable.decimals} unit={variable.unit} />
-        <SummaryStat
-          label="Maximum"
-          value={s.selMax}
-          decimals={variable.decimals}
-          unit={variable.unit}
-        />
-        <SummaryStat label="Mean" value={s.selMean} decimals={variable.decimals} unit={variable.unit} />
-        <div>
-          <dt className="font-ui text-[11.5px] text-cream">
-            vs {BASELINE.start}–{BASELINE.end} normal
-          </dt>
-          <dd className="mt-0.5 font-data text-[13px] text-ivory">
-            {hasComparison ? (
-              <>
-                {fmtDelta(s.delta, variable.decimals, variable.unit)}{' '}
-                {Math.abs(s.normal) > 0.05 && (
-                  <span className="font-ui text-[11.5px] text-cream">({fmtPct((s.delta / s.normal) * 100)})</span>
-                )}
-              </>
-            ) : (
-              <span className="font-ui text-[11.5px] text-cream">unavailable at this scope</span>
-            )}
-          </dd>
+      <dl className="mt-2.5 grid grid-cols-3 gap-x-3 gap-y-2">
+        <div className="space-y-2">
+          <SummaryStat label="Minimum" value={s.selMin} decimals={variable.decimals} unit={variable.unit} />
+          <SummaryStat label="Mean" value={s.selMean} decimals={variable.decimals} unit={variable.unit} />
         </div>
-        <div className="col-span-2">
-          <dt className="font-ui text-[11.5px] text-cream">Coverage</dt>
-          <dd className="mt-0.5 font-data text-[13px] text-ivory">
-            {s.validCount}/{s.totalCount} periods
-            {s.coverage < 1 && s.totalCount > 0 && (
-              <span className="ml-1.5 font-ui text-[11.5px] text-cream">({Math.round(s.coverage * 100)}% valid)</span>
-            )}
-          </dd>
+        <div className="space-y-2">
+          <SummaryStat label="Maximum" value={s.selMax} decimals={variable.decimals} unit={variable.unit} />
+          <div>
+            <dt className="font-ui text-[11.5px] text-cream">
+              vs {BASELINE.start}–{BASELINE.end} normal
+            </dt>
+            <dd className="mt-0.5 font-data text-[13px] text-ivory">
+              {hasComparison ? (
+                <>
+                  {fmtDelta(s.delta, variable.decimals, variable.unit)}{' '}
+                  {Math.abs(s.normal) > 0.05 && (
+                    <span className="font-ui text-[11px] text-cream">({fmtPct((s.delta / s.normal) * 100)})</span>
+                  )}
+                </>
+              ) : (
+                <span className="font-ui text-[11.5px] text-cream">unavailable</span>
+              )}
+            </dd>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div>
+            <dt className="font-ui text-[11.5px] text-cream">Coverage</dt>
+            <dd className="mt-0.5 font-data text-[13px] text-ivory">
+              {s.validCount}/{s.totalCount} periods
+              {s.coverage < 1 && s.totalCount > 0 && (
+                <span className="block font-ui text-[11px] text-cream">({Math.round(s.coverage * 100)}% valid)</span>
+              )}
+            </dd>
+          </div>
         </div>
       </dl>
 
@@ -161,12 +162,11 @@ function ProvenanceStrip({ state, variable }) {
   return (
     <section aria-label="Data provenance" className="mt-3">
       <h3 className="font-stencil text-[10.5px] uppercase tracking-[0.18em] text-beige">Where this comes from</h3>
-      <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
+      <dl className="mt-1 grid grid-cols-3 gap-x-3 gap-y-1">
         <ProvRow label="Source" value={`${SOURCE.name} · MERRA-2`} />
         <ProvRow label="Parameter" value={`${variable.param} · ${variable.headline || variable.name}`} />
         <ProvRow label="Sample" value={sample} />
-        <ProvRow label="Record" value={`${YEAR_MIN}–${YEAR_MAX} (norm ${BASELINE.start}–${BASELINE.end})`} />
-        <div className="col-span-2">
+        <div className="col-span-3">
           <dt className="font-ui text-[11px] text-beige">Retrieved</dt>
           <dd className="mt-0.5 font-data text-[11px] text-ivory truncate">{retrieved}</dd>
         </div>
