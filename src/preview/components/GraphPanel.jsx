@@ -143,17 +143,17 @@ export default function GraphPanel() {
 /* ---------------- series ---------------- */
 
 function SeriesGraph() {
-  const { state, dispatch, seriesMap, variable, mappingRange, normalByMonth, steps } = usePreview()
+  const { state, dispatch, seriesMap, variable, mappingRange, normalByMonth, steps, hasSelectedTrack } = usePreview()
   const { granularity } = state
   const canvasRef = useRef(null)
   const [cursor, setCursor] = useState(null)
 
   const points = useMemo(() => {
-    if (!seriesMap) return []
+    if (!hasSelectedTrack || !seriesMap) return []
     return granularity === 'monthly'
       ? monthlyArray(seriesMap, YEAR_MIN, YEAR_MAX)
       : annualArray(seriesMap, YEAR_MIN, YEAR_MAX)
-  }, [seriesMap, granularity])
+  }, [seriesMap, granularity, hasSelectedTrack])
 
   const labelFor = (i) => (granularity === 'monthly' ? keyToLabel(points[i].key) : String(points[i].year))
   const valueFor = (i) => points[i].value
@@ -223,11 +223,18 @@ function SeriesGraph() {
       ctx.strokeStyle = IVORY + '0.16)'
       ctx.strokeRect(0.5, 0.5, w - 1, h - 1)
 
-      if (!points.length) {
+      if (!hasSelectedTrack || !points.length) {
         ctx.fillStyle = IVORY + '0.75)'
         ctx.font = '12px Oxanium, monospace'
         ctx.textAlign = 'center'
-        ctx.fillText('NO DATA LOADED', w / 2, h / 2)
+        ctx.fillText(hasSelectedTrack ? 'NO DATA LOADED' : 'NO DATA TRACK SELECTED', w / 2, h / 2 - 8)
+        ctx.font = '11px Outfit, sans-serif'
+        ctx.fillStyle = IVORY + '0.45)'
+        ctx.fillText(
+          hasSelectedTrack ? 'Check connection or retry' : 'Select a data track above to inspect time series',
+          w / 2,
+          h / 2 + 14,
+        )
         return
       }
 
@@ -574,6 +581,7 @@ function SeriesGraph() {
           min={0}
           max={Math.max(points.length - 1, 0)}
           value={cursor ?? 0}
+          disabled={!hasSelectedTrack || points.length === 0}
           onChange={(e) => {
             const next = Number(e.target.value)
             setCursor(next)
@@ -582,7 +590,9 @@ function SeriesGraph() {
           aria-label="Inspect a point in the series"
         />
         <span className="shrink-0 font-data text-[12.5px] text-cream sm:text-right">
-          {cursorValid ? `${labelFor(cursor)} · ${valueFor(cursor) !== null ? fmtValue(valueFor(cursor), variable.decimals) : '—'}` : 'hover or focus the graph'}
+          {cursorValid
+            ? `${labelFor(cursor)} · ${valueFor(cursor) !== null ? fmtValue(valueFor(cursor), variable.decimals) : '—'}`
+            : (hasSelectedTrack ? 'hover or focus the graph' : 'select a track to inspect')}
         </span>
       </div>
     </div>
@@ -726,12 +736,12 @@ function WaveformGraph() {
 /* ---------------- data table panel ---------------- */
 
 export function DataTablePanel() {
-  const { seriesMap, variable } = usePreview()
+  const { seriesMap, variable, hasSelectedTrack } = usePreview()
 
   const annualTable = useMemo(() => {
-    if (!seriesMap) return []
+    if (!hasSelectedTrack || !seriesMap) return []
     return annualArray(seriesMap, YEAR_MIN, YEAR_MAX)
-  }, [seriesMap])
+  }, [seriesMap, hasSelectedTrack])
 
   const validCount = annualTable.filter((p) => p.value !== null).length
 
@@ -741,42 +751,53 @@ export function DataTablePanel() {
       meta={`${YEAR_MIN}–${YEAR_MAX}`}
       actions={
         <span className="font-data text-[13px] font-medium text-beige">
-          {validCount} years
+          {hasSelectedTrack ? `${validCount} years` : 'No track'}
         </span>
       }
     >
       <div className="flex flex-1 flex-col min-h-0">
         <p className="mb-2 shrink-0 font-ui text-[14px] leading-snug text-cream font-medium">
-          Annual means · {variable.name} ({variable.unit})
+          {hasSelectedTrack
+            ? `Annual means · ${variable.name} (${variable.unit})`
+            : 'Annual means · No track selected'}
         </p>
         <div
           className="h-[365px] sm:h-[385px] md:h-[405px] lg:h-[425px] overflow-y-auto border border-ivory/15 bg-black/30 pr-1 data-tracks-scroll"
           data-lenis-prevent
         >
-          <table className="w-full border-collapse font-ui">
-            <thead className="sticky top-0 z-10 bg-[#161819] border-b border-ivory/20 shadow-md">
-              <tr className="text-left">
-                <th scope="col" className="py-2 px-3.5 font-ui text-[14px] sm:text-[14.5px] text-ivory font-semibold">
-                  Year
-                </th>
-                <th scope="col" className="py-2 px-3.5 text-right font-ui text-[14px] sm:text-[14.5px] text-ivory font-semibold">
-                  {variable.unit}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {annualTable.map((p) => (
-                <tr key={p.year} className="border-b border-ivory/10 hover:bg-white/[0.04] transition-colors">
-                  <th scope="row" className="py-2 px-3.5 text-left font-data text-[15px] sm:text-[15.5px] font-medium text-cream">
-                    {p.year}
+          {hasSelectedTrack ? (
+            <table className="w-full border-collapse font-ui">
+              <thead className="sticky top-0 z-10 bg-[#161819] border-b border-ivory/20 shadow-md">
+                <tr className="text-left">
+                  <th scope="col" className="py-2 px-3.5 font-ui text-[14px] sm:text-[14.5px] text-ivory font-semibold">
+                    Year
                   </th>
-                  <td className="py-2 px-3.5 text-right font-data text-[15px] sm:text-[15.5px] font-semibold text-ivory">
-                    {p.value !== null ? fmtValue(p.value, variable.decimals) : '—'}
-                  </td>
+                  <th scope="col" className="py-2 px-3.5 text-right font-ui text-[14px] sm:text-[14.5px] text-ivory font-semibold">
+                    {variable.unit}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {annualTable.map((p) => (
+                  <tr key={p.year} className="border-b border-ivory/10 hover:bg-white/[0.04] transition-colors">
+                    <th scope="row" className="py-2 px-3.5 text-left font-data text-[15px] sm:text-[15.5px] font-medium text-cream">
+                      {p.year}
+                    </th>
+                    <td className="py-2 px-3.5 text-right font-data text-[15px] sm:text-[15.5px] font-semibold text-ivory">
+                      {p.value !== null ? fmtValue(p.value, variable.decimals) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="flex h-full min-h-[300px] flex-col items-center justify-center p-6 text-center">
+              <p className="font-ui text-[14px] text-cream">No data track selected</p>
+              <p className="mt-1 font-ui text-[12px] text-beige">
+                Select a track above to view annual records
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </Panel>

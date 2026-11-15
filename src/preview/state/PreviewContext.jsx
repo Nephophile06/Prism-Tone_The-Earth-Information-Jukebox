@@ -54,6 +54,7 @@ const initialNational = deriveNational(baselineData.series, LIVE_VARIABLES.map((
 const initialState = {
   variableId: 'T2M',
   selectedVariableIds: [],
+  toast: null,
   scope: { type: 'national' },
   timeMode: 'year', // year | month | range
   year: 2010,
@@ -95,13 +96,17 @@ const initialState = {
 
   playState: 'idle', // idle | playing | paused
   position: 0,
-  caption: { text: idleCaption({
-    variable: VARIABLE_BY_ID['T2M'],
-    scopeName: 'Global (World)',
-    scopeKind: 'national',
-    hasData: true,
-    ready: true,
-  }), cls: 'interpretation' },
+  caption: {
+    text: 'No data track selected. Select at least one track above to start sonification.',
+    shortText: 'No track selected',
+    key: null,
+    label: 'No track selected',
+    value: null,
+    delta: null,
+    normal: null,
+    plan: null,
+    cls: 'interpretation',
+  },
 
   guideOpen: false,
   continentModalOpen: false,
@@ -135,8 +140,10 @@ initialState.caption = initialStateCaption
 initialState.soundPlan = initialStateCaption.plan
 
 export function currentSeriesMap(state) {
+  const selected = (state.selectedVariableIds || []).filter((id) => VARIABLE_BY_ID[id]?.status === 'live')
+  if (!selected.length) return null
   const variable = VARIABLE_BY_ID[state.variableId]
-  return scopeSeries(state.data, state.scope, variable.param)
+  return variable ? scopeSeries(state.data, state.scope, variable.param) : null
 }
 
 function rangeOf(seriesMap) {
@@ -202,6 +209,20 @@ function normalizeCaption(caption) {
 }
 
 function idleSelectionFor(state) {
+  const selected = (state.selectedVariableIds || []).filter((id) => VARIABLE_BY_ID[id]?.status === 'live')
+  if (!selected.length) {
+    return normalizeCaption({
+      text: 'No data track selected. Select at least one track above to start sonification.',
+      shortText: 'No track selected',
+      key: null,
+      label: 'No track selected',
+      value: null,
+      delta: null,
+      normal: null,
+      plan: null,
+      cls: 'interpretation',
+    })
+  }
   const variable = VARIABLE_BY_ID[state.variableId]
   const seriesMap = currentSeriesMap(state)
   const range = rangeOf(seriesMap)
@@ -361,17 +382,27 @@ function reducer(state, action) {
       const activeId = updated.length > 0
         ? (updated.includes(state.variableId) ? state.variableId : updated[0])
         : state.variableId
+      if (updated.length === 0 && state.playState !== 'idle') {
+        engine.stop()
+      }
       const next = refreshIdle({
         ...state,
         selectedVariableIds: updated,
         variableId: activeId,
         unavailableNoticeId: null,
+        playState: updated.length === 0 ? 'idle' : state.playState,
       })
       const text = exists
-        ? `${chosen.name} removed from the mix. ${updated.length} ${updated.length === 1 ? 'layer' : 'layers'} remain.`
+        ? (updated.length === 0
+            ? `${chosen.name} removed from the mix. No active layers remain.`
+            : `${chosen.name} removed from the mix. ${updated.length} ${updated.length === 1 ? 'layer' : 'layers'} remain.`)
         : `${chosen.name} added to the mix. ${updated.length} ${updated.length === 1 ? 'layer' : 'layers'} sound together.`
       return { ...next, live: liveFor(state, text) }
     }
+    case 'SHOW_TOAST':
+      return { ...state, toast: { id: Date.now(), message: action.message } }
+    case 'HIDE_TOAST':
+      return { ...state, toast: null }
     case 'SET_SELECTED_VARIABLES': {
       const ids = (action.ids || [])
         .filter((id) => VARIABLE_BY_ID[id]?.status === 'live')
@@ -763,20 +794,18 @@ export function PreviewProvider({ children }) {
   const mappingRange = useMemo(() => rangeOf(seriesMap), [seriesMap])
   const normalByMonth = useMemo(() => normalsFor(seriesMap), [seriesMap])
 
-  /* The datasets sounding together. At least one is always present; the
-     reducer never lets the count fall below one or rise above three. */
+  /* The datasets sounding together. When none is selected, array is empty. */
   const selectedVariableIds = useMemo(() => {
-    const ids = state.selectedVariableIds && state.selectedVariableIds.length
-      ? state.selectedVariableIds
-      : [state.variableId]
-    const live = ids.filter((id) => VARIABLE_BY_ID[id]?.status === 'live')
-    return live.length ? live : [state.variableId]
-  }, [state.selectedVariableIds, state.variableId])
+    const ids = state.selectedVariableIds || []
+    return ids.filter((id) => VARIABLE_BY_ID[id]?.status === 'live')
+  }, [state.selectedVariableIds])
+
+  const hasSelectedTrack = selectedVariableIds.length > 0
 
   /* Every selected dataset keeps its own series, range and normals, so its
      rack can be mapped independently while the lead supplies the tempo. */
   const layerConfigs = useMemo(() => {
-    if (state.data.status !== 'ready' || !steps.length) return []
+    if (!hasSelectedTrack || state.data.status !== 'ready' || !steps.length) return []
     return selectedVariableIds.map((id) => {
       const layerVariable = VARIABLE_BY_ID[id]
       const layerSeries = layerVariable ? scopeSeries(state.data, state.scope, layerVariable.param) : null
@@ -792,11 +821,11 @@ export function PreviewProvider({ children }) {
         normals: normalsFor(layerSeries),
       }
     })
-  }, [selectedVariableIds, state.data, state.scope, steps])
+  }, [hasSelectedTrack, selectedVariableIds, state.data, state.scope, steps])
 
   const engineLayers = useMemo(
-    () => (layerConfigs.length ? layerConfigs : [{ variable, range: mappingRange, steps, normals: normalByMonth }]),
-    [layerConfigs, variable, mappingRange, steps, normalByMonth],
+    () => (layerConfigs.length ? layerConfigs : []),
+    [layerConfigs],
   )
 
   const analysisKey = [
@@ -1071,12 +1100,25 @@ export function PreviewProvider({ children }) {
   const actions = useMemo(
     () => ({
       play: () => {
+        const current = stateRef.current
+        const hasTrack = (current.selectedVariableIds || []).filter((id) => VARIABLE_BY_ID[id]?.status === 'live').length > 0
+        if (!hasTrack) {
+          dispatch({
+            type: 'SHOW_TOAST',
+            message: 'Please select at least one data track to sonify.',
+          })
+          dispatch({
+            type: 'ANNOUNCE',
+            text: 'Please select at least one data track to sonify.',
+          })
+          return false
+        }
         if (engine.imageActive) {
           dispatch({
             type: 'ANNOUNCE',
             text: 'An image score is playing. Stop it before playing the data view.',
           })
-          return
+          return false
         }
         const started = engine.play()
         if (started === false) {
@@ -1084,26 +1126,41 @@ export function PreviewProvider({ children }) {
             type: 'ANNOUNCE',
             text: 'Another audio score is playing. Stop it before starting the data view.',
           })
-          return
+          return false
         }
         dispatch({ type: 'PLAY' })
         dispatch({ type: 'SCORE_STATUS', patch: { source: engine.source } })
+        return true
       },
       pause: () => {
         engine.pause()
         dispatch({ type: 'PAUSE' })
       },
       resume: () => {
+        const current = stateRef.current
+        const hasTrack = (current.selectedVariableIds || []).filter((id) => VARIABLE_BY_ID[id]?.status === 'live').length > 0
+        if (!hasTrack) {
+          dispatch({
+            type: 'SHOW_TOAST',
+            message: 'Please select at least one data track to sonify.',
+          })
+          dispatch({
+            type: 'ANNOUNCE',
+            text: 'Please select at least one data track to sonify.',
+          })
+          return false
+        }
         if (engine.imageActive) {
           dispatch({
             type: 'ANNOUNCE',
             text: 'An image score is playing. Stop it before resuming the data view.',
           })
-          return
+          return false
         }
         dispatch({ type: 'PLAY' })
         engine.resume()
         dispatch({ type: 'SCORE_STATUS', patch: { source: engine.source } })
+        return true
       },
       stop: () => {
         engine.stop()
@@ -1115,6 +1172,8 @@ export function PreviewProvider({ children }) {
         dispatch({ type: 'SEEK', index })
       },
       announce: (text) => dispatch({ type: 'ANNOUNCE', text }),
+      showToast: (message) => dispatch({ type: 'SHOW_TOAST', message }),
+      hideToast: () => dispatch({ type: 'HIDE_TOAST' }),
       setSoundMode: (mode) => {
         const next = mode === 'ambient' ? 'ambient' : 'analysis'
         const current = stateRef.current
@@ -1134,6 +1193,19 @@ export function PreviewProvider({ children }) {
         })
       },
       playSummary: () => {
+        const current = stateRef.current
+        const hasTrack = (current.selectedVariableIds || []).filter((id) => VARIABLE_BY_ID[id]?.status === 'live').length > 0
+        if (!hasTrack) {
+          dispatch({
+            type: 'SHOW_TOAST',
+            message: 'Please select at least one data track to hear a summary.',
+          })
+          dispatch({
+            type: 'ANNOUNCE',
+            text: 'Please select at least one data track to hear a summary.',
+          })
+          return
+        }
         if (engine.imageActive) {
           dispatch({
             type: 'ANNOUNCE',
@@ -1145,7 +1217,6 @@ export function PreviewProvider({ children }) {
           engine.stop()
           dispatch({ type: 'STOP' })
         }
-        const current = stateRef.current
         const currentVariable = VARIABLE_BY_ID[current.variableId]
         const currentSeries = seriesMapRef.current
         if (!currentVariable || !currentSeries) {
@@ -1197,8 +1268,10 @@ export function PreviewProvider({ children }) {
       seriesMap,
       variable,
       normalByMonth,
+      hasSelectedTrack,
+      selectedVariableIds,
     }),
-    [state, actions, steps, mappingRange, seriesMap, variable, normalByMonth],
+    [state, actions, steps, mappingRange, seriesMap, variable, normalByMonth, hasSelectedTrack, selectedVariableIds],
   )
 
   return <PreviewContext.Provider value={value}>{children}</PreviewContext.Provider>

@@ -72,8 +72,8 @@ export function usePreviewKeys() {
           actions.resume()
           actions.announce('Playback resumed.')
         } else {
-          actions.play()
-          actions.announce('Playback started.')
+          const ok = actions.play()
+          if (ok !== false) actions.announce('Playback started.')
         }
         return
       }

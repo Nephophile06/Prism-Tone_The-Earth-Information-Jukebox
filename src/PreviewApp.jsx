@@ -14,6 +14,7 @@ import ImagePanel from './preview/components/ImagePanel'
 import NowSounding from './preview/components/NowSounding'
 import SettingsDrawer from './preview/components/SettingsDrawer'
 import { GuideModal, ContinentModal } from './preview/components/Modals'
+import Toast from './preview/components/Toast'
 import { LiveRegion, usePreviewKeys } from './preview/components/Accessibility'
 import { displayKey } from './preview/lib/selectors'
 import { keyToLabel } from './preview/lib/processing'
@@ -156,6 +157,7 @@ function PreviewStudio() {
       <SettingsDrawer />
       <GuideModal />
       <ContinentModal />
+      <Toast />
       <MapMiniPlayer visible={!mapInView} />
     </div>
   )

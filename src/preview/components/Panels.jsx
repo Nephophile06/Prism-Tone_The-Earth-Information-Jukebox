@@ -16,11 +16,15 @@ import Sparkline from './Sparkline'
 import Panel from './Panel'
 
 function SummaryPanel() {
-  const { state, steps, seriesMap, variable, actions } = usePreview()
+  const { state, steps, seriesMap, variable, actions, hasSelectedTrack } = usePreview()
   const [summaryPlaying, setSummaryPlaying] = useState(false)
   const summaryTimerRef = useRef(null)
 
   const handlePlaySummary = () => {
+    if (!hasSelectedTrack) {
+      actions.playSummary()
+      return
+    }
     actions.playSummary()
     setSummaryPlaying(true)
     if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current)
@@ -68,14 +72,16 @@ function SummaryPanel() {
     position: state.position,
     playState: state.playState,
   })
-  const spark = sparklineWindow({ state, seriesMap, steps, position: state.position })
+  const spark = hasSelectedTrack
+    ? sparklineWindow({ state, seriesMap, steps, position: state.position })
+    : { points: [], current: -1 }
   const scopeName = state.scope.type === 'division' && CONTINENT_BY_ID[state.scope.id]
     ? CONTINENT_BY_ID[state.scope.id].name
     : 'World'
   const scopeColor = state.scope.type === 'division' && CONTINENT_BY_ID[state.scope.id]
     ? CONTINENT_BY_ID[state.scope.id].color
     : '#c19a5b'
-  const hasComparison = s.normal !== null && s.delta !== null
+  const hasComparison = hasSelectedTrack && s.normal !== null && s.delta !== null
 
   const header = (
     <div className="flex flex-wrap items-center gap-2">
@@ -83,7 +89,9 @@ function SummaryPanel() {
         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: scopeColor }} aria-hidden="true" />
         {scopeName}
       </span>
-      <span className="font-ui text-[13px] text-cream">{s.selectionLabel}</span>
+      <span className="font-ui text-[13px] text-cream">
+        {hasSelectedTrack ? s.selectionLabel : 'No track'}
+      </span>
     </div>
   )
 
@@ -92,10 +100,14 @@ function SummaryPanel() {
       <Sparkline
         points={spark.points}
         current={spark.current}
-        normal={s.normal}
+        normal={hasSelectedTrack ? s.normal : null}
         decimals={variable.decimals}
         unit={variable.unit}
-        label={`${variable.name} trend ending at the current selection. Dashed line is the 1991–2020 normal.`}
+        label={
+          hasSelectedTrack
+            ? `${variable.name} trend ending at the current selection. Dashed line is the 1991–2020 normal.`
+            : 'No data track selected'
+        }
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -133,11 +145,11 @@ function SummaryPanel() {
 
       <dl className="mt-3.5 grid grid-cols-3 gap-x-4 gap-y-3">
         <div className="space-y-3">
-          <SummaryStat label="Minimum" value={s.selMin} decimals={variable.decimals} unit={variable.unit} />
-          <SummaryStat label="Mean" value={s.selMean} decimals={variable.decimals} unit={variable.unit} />
+          <SummaryStat label="Minimum" value={hasSelectedTrack ? s.selMin : null} decimals={variable.decimals} unit={variable.unit} />
+          <SummaryStat label="Mean" value={hasSelectedTrack ? s.selMean : null} decimals={variable.decimals} unit={variable.unit} />
         </div>
         <div className="space-y-3">
-          <SummaryStat label="Maximum" value={s.selMax} decimals={variable.decimals} unit={variable.unit} />
+          <SummaryStat label="Maximum" value={hasSelectedTrack ? s.selMax : null} decimals={variable.decimals} unit={variable.unit} />
           <div>
             <dt className="font-ui text-[12.5px] text-cream">
               vs {BASELINE.start}–{BASELINE.end} normal
@@ -151,7 +163,7 @@ function SummaryPanel() {
                   )}
                 </>
               ) : (
-                <span className="font-ui text-[12px] text-cream">unavailable</span>
+                <span className="font-ui text-[12px] text-cream">—</span>
               )}
             </dd>
           </div>
@@ -160,16 +172,22 @@ function SummaryPanel() {
           <div>
             <dt className="font-ui text-[12.5px] text-cream">Coverage</dt>
             <dd className="mt-0.5 font-data text-[14px] text-ivory">
-              {s.validCount}/{s.totalCount} periods
-              {s.coverage < 1 && s.totalCount > 0 && (
-                <span className="block font-ui text-[11.5px] text-cream">({Math.round(s.coverage * 100)}% valid)</span>
+              {hasSelectedTrack ? (
+                <>
+                  {s.validCount}/{s.totalCount} periods
+                  {s.coverage < 1 && s.totalCount > 0 && (
+                    <span className="block font-ui text-[11.5px] text-cream">({Math.round(s.coverage * 100)}% valid)</span>
+                  )}
+                </>
+              ) : (
+                <span className="font-ui text-[12px] text-cream">—</span>
               )}
             </dd>
           </div>
         </div>
       </dl>
 
-      <ProvenanceStrip state={state} variable={variable} />
+      <ProvenanceStrip state={state} variable={variable} hasSelectedTrack={hasSelectedTrack} />
     </Panel>
   )
 }
@@ -180,7 +198,7 @@ function SummaryPanel() {
  * only metadata the app already holds: the retrieval path, the timestamp and
  * the sampled coordinates.
  */
-function ProvenanceStrip({ state, variable }) {
+function ProvenanceStrip({ state, variable, hasSelectedTrack = true }) {
   const meta = state.data.meta || {}
   const division = state.scope.type === 'division' ? CONTINENT_BY_ID[state.scope.id] : null
   const coords = coordinateLabel(division)
@@ -197,10 +215,10 @@ function ProvenanceStrip({ state, variable }) {
     <section aria-label="Data provenance" className="mt-4 pt-1">
       <h3 className="font-stencil text-[11px] uppercase tracking-[0.18em] text-beige">Where this comes from</h3>
       <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2.5">
-        <ProvRow label="Source" value={`${SOURCE.name} · MERRA-2`} />
-        <ProvRow label="Parameter" value={`${variable.param} · ${variable.headline || variable.name}`} />
-        <ProvRow label="Sample" value={sample} />
-        <ProvRow label="Retrieved" value={retrieved} />
+        <ProvRow label="Source" value={hasSelectedTrack ? `${SOURCE.name} · MERRA-2` : '—'} />
+        <ProvRow label="Parameter" value={hasSelectedTrack ? `${variable.param} · ${variable.headline || variable.name}` : 'No track selected'} />
+        <ProvRow label="Sample" value={hasSelectedTrack ? sample : '—'} />
+        <ProvRow label="Retrieved" value={hasSelectedTrack ? retrieved : '—'} />
       </dl>
     </section>
   )

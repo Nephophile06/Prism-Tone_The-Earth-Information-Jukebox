@@ -42,7 +42,7 @@ function stripDatePrefix(text, label) {
 }
 
 export default function NowSounding({ className = '' }) {
-  const { state, variable } = usePreview()
+  const { state, variable, hasSelectedTrack } = usePreview()
   const caption = state.caption || {}
   const tone = anomalyTone(variable, caption.delta, caption.normal)
   const captionsOn = state.settings.captionsVisible !== false
@@ -52,9 +52,38 @@ export default function NowSounding({ className = '' }) {
   const history = (state.transcript || [])
     .filter((entry) => entry.text !== rawText && entry.text !== currentText)
     .slice(-2)
-  const activeLayers = (state.selectedVariableIds || [state.variableId])
+  const activeLayers = (state.selectedVariableIds || [])
     .map((id) => VARIABLE_BY_ID[id])
     .filter((v) => v && v.status === 'live')
+
+  if (!hasSelectedTrack) {
+    return (
+      <section
+        aria-label="Now sounding captions"
+        className={`relative z-30 border border-ivory/10 bg-coal/40 p-4 md:p-5 flex flex-col min-h-0 overflow-hidden ${className}`}
+      >
+        <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-3 border-b border-ivory/10 pb-3">
+          <div className="flex items-baseline gap-2">
+            <span className="font-data text-[28px] leading-none text-ivory/40 font-semibold tracking-tight">
+              —
+            </span>
+          </div>
+          <div className="flex items-center">
+            <span className="font-ui text-[12px] font-medium tracking-wide text-beige">
+              No track active
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-3 min-w-0 flex-1 overflow-y-auto pr-1.5 data-tracks-scroll flex flex-col items-center justify-center text-center p-4" data-lenis-prevent>
+          <p className="font-ui text-[14px] text-cream">No data track selected</p>
+          <p className="mt-1 font-ui text-[12px] text-beige">
+            Select at least one track above to start sonification.
+          </p>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section
