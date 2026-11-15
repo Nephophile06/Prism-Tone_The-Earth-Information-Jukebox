@@ -1093,6 +1093,38 @@ export default function ImagePanel() {
                 </p>
               </div>
             )}
+
+            {/* Action Buttons: Copy link, Hear related POWER data, Export score */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              {activeTab === 'eic' && (
+                <button
+                  type="button"
+                  onClick={copyShareLink}
+                  className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                >
+                  Copy link
+                </button>
+              )}
+
+              {activeTab === 'eic' && activePreset.dataLink && (
+                <button
+                  type="button"
+                  onClick={openDataLink}
+                  title={activePreset.dataLink.label}
+                  className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                >
+                  Hear related POWER data
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={exportScore}
+                className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+              >
+                Export score
+              </button>
+            </div>
           </div>
 
           {/* Right Column: Visual Frame Viewport & Interactive Scanning Playhead */}
@@ -1281,38 +1313,6 @@ export default function ImagePanel() {
                     {autoAdvance ? 'Queue on' : 'Play all'}
                   </button>
                 )}
-              </div>
-
-              {/* Secondary Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-ivory/10">
-                {activeTab === 'eic' && (
-                  <button
-                    type="button"
-                    onClick={copyShareLink}
-                    className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
-                  >
-                    Copy link
-                  </button>
-                )}
-
-                {activeTab === 'eic' && activePreset.dataLink && (
-                  <button
-                    type="button"
-                    onClick={openDataLink}
-                    title={activePreset.dataLink.label}
-                    className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
-                  >
-                    Hear related POWER data
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={exportScore}
-                  className="border border-ivory/25 px-3 py-1.5 font-ui text-[13.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
-                >
-                  Export score
-                </button>
               </div>
 
               {/* Active playing indicator badge */}
