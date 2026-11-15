@@ -884,23 +884,6 @@ export default function ImagePanel() {
                   </a>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 font-ui text-[13.5px]">
-                  <label className="inline-flex cursor-pointer items-center gap-2 border border-ivory/15 px-3 py-1.5 text-cream transition-colors hover:border-ivory/40">
-                    <input
-                      type="checkbox"
-                      checked={liveScore}
-                      onChange={(event) => toggleLiveMode(event.target.checked)}
-                      className="h-3.5 w-3.5 accent-[#d98c5f]"
-                    />
-                    <span>Live browser-vision scoring</span>
-                  </label>
-                  <span className="text-beige">
-                    {liveScore
-                      ? 'Next play re-scores this frame through the API; falls back to the checked-in score.'
-                      : 'Instant playback from the score checked in with the frame.'}
-                  </span>
-                </div>
-
                 <div className="border border-ivory/15 bg-black/35 p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-ui text-[13.5px] font-semibold uppercase tracking-wider text-beige">
