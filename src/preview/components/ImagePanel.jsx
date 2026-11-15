@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { usePreview } from '../state/PreviewContext'
 import { fetchImageScore, fetchVideoScore } from '../api/sonify'
 import { engine } from '../lib/sonify'
@@ -130,6 +131,31 @@ export default function ImagePanel() {
   const abortRef = useRef(null)
   const [previewSrc, setPreviewSrc] = useState('')
   const progressRafRef = useRef(null)
+  const [timelineModalOpen, setTimelineModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (!timelineModalOpen) return
+
+    window.__lenis?.stop()
+    const origBodyOverflow = document.body.style.overflow
+    const origHtmlOverflow = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setTimelineModalOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      window.__lenis?.start()
+      document.body.style.overflow = origBodyOverflow
+      document.documentElement.style.overflow = origHtmlOverflow
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [timelineModalOpen])
 
   // Current visual frame URL
   const currentImageUrl = activeTab === 'eic'
@@ -1280,23 +1306,100 @@ export default function ImagePanel() {
           </div>
         </div>
 
-        {/* Captions Log */}
+        {/* Musical Score Captions & Timeline Trigger */}
         {captions.length > 0 && (
-          <div className="border-t border-ivory/10 pt-3">
-            <p className="font-ui text-[13px] text-beige font-medium">Musical Score Captions & Timeline</p>
-            <ol className="mt-2 max-h-[140px] space-y-1 overflow-y-auto pr-1 data-tracks-scroll" data-lenis-prevent>
-              {captions.map((caption, index) => (
-                <li key={`${caption.t_beats}-${index}`} className="font-ui text-[13px] leading-snug text-cream">
-                  <span className="font-data text-[12px] text-beige">
-                    {Number(caption.t_beats).toFixed(0)}b
-                  </span>{' '}
-                  {caption.text}
-                </li>
-              ))}
-            </ol>
+          <div className="border-t border-ivory/10 pt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-ember/80" aria-hidden="true" />
+              <p className="font-ui text-[13px] text-cream">
+                <span className="font-medium text-ivory">Musical Score Captions &amp; Timeline</span>
+                <span className="text-beige/80 ml-2">({captions.length} bars)</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTimelineModalOpen(true)}
+              className="inline-flex items-center gap-2 border border-ivory/25 bg-ivory/10 px-3 py-1.5 font-ui text-[12.5px] font-medium text-ivory hover:border-ivory/60 hover:bg-ivory/20 transition-all cursor-pointer shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
+            >
+              <span>View Score Timeline</span>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M2.5 9.5L9.5 2.5" />
+                <path d="M4 2.5H9.5V8" />
+              </svg>
+            </button>
           </div>
         )}
       </div>
+
+      {/* Musical Score Captions & Timeline Modal */}
+      {timelineModalOpen && captions.length > 0 && typeof document !== 'undefined' && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="score-timeline-modal-title"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto"
+          data-lenis-prevent
+        >
+          {/* Backdrop */}
+          <div
+            onClick={() => setTimelineModalOpen(false)}
+            className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity cursor-pointer"
+            aria-hidden="true"
+          />
+
+          {/* Modal Card */}
+          <div
+            className="relative z-10 w-full max-w-3xl rounded-xl border border-ivory/25 bg-[#121415] shadow-2xl shadow-black/95 p-5 sm:p-6 md:p-7 flex flex-col max-h-[85vh] overflow-y-auto data-tracks-scroll my-auto"
+            data-lenis-prevent
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-ivory/10 pb-3.5">
+              <div>
+                <span className="font-stencil text-[10px] uppercase tracking-[0.24em] text-ember font-medium">
+                  Sonification Timeline
+                </span>
+                <h2
+                  id="score-timeline-modal-title"
+                  className="mt-0.5 font-meno text-2xl sm:text-3xl font-light text-ivory tracking-tight"
+                  style={{ fontFamily: '"Meno Banner", Georgia, serif' }}
+                >
+                  Musical Score Captions &amp; Timeline
+                </h2>
+                <p className="mt-1 text-[12.5px] text-cream font-ui leading-relaxed">
+                  {activeTab === 'eic' && activePreset ? `${activePreset.title} · SVS ${activePreset.svsId}` : 'Visual Sonification Score'}
+                  <span className="text-beige/80 ml-2">({captions.length} chronological bars)</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTimelineModalOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded border border-ivory/20 text-ivory/70 hover:border-ivory/60 hover:text-white hover:bg-ivory/10 transition-colors cursor-pointer text-sm shrink-0 ml-4"
+                title="Close popup"
+                aria-label="Close popup"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Captions List */}
+            <div className="mt-4">
+              <ol className="divide-y divide-ivory/10" aria-label="Score captions in chronological order">
+                {captions.map((caption, index) => (
+                  <li key={`${caption.t_beats}-${index}`} className="py-2.5 flex items-start gap-3">
+                    <span className="shrink-0 mt-0.5 inline-flex items-center justify-center rounded border border-ember/40 bg-ember/15 px-2 py-0.5 font-data text-[11px] font-medium text-ember">
+                      {Number(caption.t_beats).toFixed(0)}b
+                    </span>
+                    <p className="font-ui text-[13.5px] leading-relaxed text-cream">
+                      {caption.text}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </Panel>
   )
 }
