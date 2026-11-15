@@ -207,7 +207,8 @@ function SeriesGraph() {
     let frame = 0
 
     const draw = () => {
-      const w = canvas.clientWidth
+      try {
+        const w = canvas.clientWidth
       const h = canvas.clientHeight
       if (!w || !h) return
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
@@ -435,11 +436,19 @@ function SeriesGraph() {
         ctx.lineTo(px, padT + ih)
         ctx.stroke()
         if (points[playhead].value !== null) {
+          const py = y(points[playhead].value)
+          ctx.fillStyle = 'rgba(217, 140, 95, 0.35)'
+          ctx.beginPath()
+          ctx.arc(px, py, 6, 0, Math.PI * 2)
+          ctx.fill()
           ctx.fillStyle = EMBER + '1)'
           ctx.beginPath()
-          ctx.arc(px, smoothedY(playhead), 3.8, 0, Math.PI * 2)
+          ctx.arc(px, py, 3.2, 0, Math.PI * 2)
           ctx.fill()
         }
+      }
+      } catch (err) {
+        console.error('Graph draw error:', err)
       }
     }
 

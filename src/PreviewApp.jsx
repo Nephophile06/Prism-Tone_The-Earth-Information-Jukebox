@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Component, useEffect, useRef, useState } from 'react'
 import { MotionConfig, motion, useScroll } from 'motion/react'
 import { useLenisScroll } from './hooks/useLenisScroll'
 
@@ -161,6 +161,37 @@ function PreviewStudio() {
   )
 }
 
+class PreviewErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('Preview error caught:', error, errorInfo)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="mx-auto my-16 max-w-xl border border-ember/40 bg-coal/80 p-6 text-center">
+          <h2 className="font-stencil text-lg text-ember tracking-widest uppercase mb-2">Interface Recovery</h2>
+          <p className="font-ui text-sm text-cream mb-4">A rendering interruption was caught. Click below to reload.</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="border border-ivory/40 bg-ivory/10 px-4 py-2 font-ui text-sm text-ivory hover:bg-ivory/20"
+          >
+            Reload Jukebox
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function PreviewApp() {
   useLenisScroll()
 
@@ -171,9 +202,11 @@ export default function PreviewApp() {
 
       <main className="relative z-10 bg-transparent text-[#f5f2eb]">
         <div className="h-20 sm:h-22 md:h-24" aria-hidden="true" />
-        <PreviewProvider>
-          <PreviewStudio />
-        </PreviewProvider>
+        <PreviewErrorBoundary>
+          <PreviewProvider>
+            <PreviewStudio />
+          </PreviewProvider>
+        </PreviewErrorBoundary>
       </main>
     </MotionConfig>
   )
