@@ -7,10 +7,11 @@
  * reconstructed or invented.
  */
 
-import { memo, useState } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { usePreview } from '../state/PreviewContext'
 import { fmtValue, fmtDelta } from '../lib/format'
 import { BASELINE } from '../data/datasets'
+import { cancelSpeech, getBestVoice, isSpeechSupported } from '../lib/speech'
 
 function clock(ms) {
   try {
@@ -39,6 +40,96 @@ function Transcript() {
   const { state, dispatch, actions } = usePreview()
   const entries = state.transcript || []
   const [copied, setCopied] = useState('')
+  const [voiceState, setVoiceState] = useState('idle') // 'idle' | 'playing' | 'paused'
+
+  // Clean up speech when unmounting or if transcript is cleared
+  useEffect(() => {
+    return () => {
+      cancelSpeech()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (entries.length === 0 && voiceState !== 'idle') {
+      cancelSpeech()
+      setVoiceState('idle')
+    }
+  }, [entries.length, voiceState])
+
+  const handleToggleVoice = () => {
+    if (!isSpeechSupported()) {
+      actions.announce('Speech synthesis is not supported in this browser.')
+      return
+    }
+
+    if (voiceState === 'paused') {
+      try {
+        window.speechSynthesis.resume()
+        setVoiceState('playing')
+        actions.announce('Resumed transcript narration.')
+      } catch {
+        setVoiceState('idle')
+      }
+      return
+    }
+
+    if (voiceState === 'playing') {
+      try {
+        window.speechSynthesis.pause()
+        setVoiceState('paused')
+        actions.announce('Paused transcript narration.')
+      } catch {
+        setVoiceState('idle')
+      }
+      return
+    }
+
+    // Start fresh speech
+    if (entries.length === 0) {
+      actions.announce('No captions have been recorded yet this session.')
+      return
+    }
+
+    cancelSpeech()
+
+    const spokenText = `Session transcript with ${entries.length} caption${entries.length === 1 ? '' : 's'}. ` +
+      entries.map((e, idx) => {
+        const timePart = e.label || clock(e.at)
+        const valPart = e.value !== null && e.value !== undefined
+          ? `, ${fmtValue(e.value, Number.isFinite(e.decimals) ? e.decimals : 1)} ${e.unit || ''}`
+          : ''
+        return `Entry ${idx + 1}: ${timePart}${valPart}. ${e.text}`
+      }).join(' ')
+
+    const utterance = new window.SpeechSynthesisUtterance(spokenText)
+    const voice = getBestVoice(state.settings?.voiceURI)
+    if (voice) {
+      utterance.voice = voice
+      utterance.lang = voice.lang || 'en-US'
+    } else {
+      utterance.lang = 'en-US'
+    }
+    utterance.rate = 0.95
+    utterance.pitch = 1.02
+    utterance.volume = Math.min(1, Math.max(0.1, Number(state.volume) || 1))
+
+    utterance.onend = () => setVoiceState('idle')
+    utterance.onerror = () => setVoiceState('idle')
+
+    try {
+      window.speechSynthesis.resume()
+    } catch {}
+
+    window.speechSynthesis.speak(utterance)
+    setVoiceState('playing')
+    actions.announce('Reading transcript aloud.')
+  }
+
+  const handleStopVoice = () => {
+    cancelSpeech()
+    setVoiceState('idle')
+    actions.announce('Stopped transcript narration.')
+  }
 
   const plain = () => entries.map(lineFor).join('\n')
 
@@ -87,6 +178,83 @@ function Transcript() {
           {copied && (
             <span className="font-ui text-[13px] text-cream">{copied}</span>
           )}
+
+          {/* Voice Narration: Play/Pause */}
+          <button
+            type="button"
+            onClick={handleToggleVoice}
+            disabled={entries.length === 0}
+            aria-label={
+              voiceState === 'playing'
+                ? 'Pause transcript voice narration'
+                : voiceState === 'paused'
+                  ? 'Resume transcript voice narration'
+                  : 'Play transcript voice narration'
+            }
+            title={
+              entries.length === 0
+                ? 'No captions to read'
+                : voiceState === 'playing'
+                  ? 'Pause voice'
+                  : voiceState === 'paused'
+                    ? 'Resume voice'
+                    : 'Listen to transcript with voice'
+            }
+            className={`min-h-[34px] inline-flex items-center gap-1.5 border px-3 py-1 font-ui text-[13px] font-medium transition-all ${
+              voiceState === 'playing'
+                ? 'border-ember bg-ember/20 text-ivory hover:bg-ember/30'
+                : voiceState === 'paused'
+                  ? 'border-amber-400/80 bg-amber-950/40 text-amber-200 hover:bg-amber-900/50'
+                  : 'border-ivory/25 text-ivory hover:border-ivory/60 hover:bg-white/5'
+            } disabled:cursor-not-allowed disabled:border-ivory/10 disabled:text-beige focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer`}
+          >
+            {voiceState === 'playing' ? (
+              <>
+                <span className="flex items-center gap-0.5" aria-hidden="true">
+                  <span className="h-2.5 w-0.5 animate-pulse bg-ember" />
+                  <span className="h-3.5 w-0.5 animate-pulse bg-ember" />
+                  <span className="h-2 w-0.5 animate-pulse bg-ember" />
+                </span>
+                <span>Pause voice</span>
+              </>
+            ) : voiceState === 'paused' ? (
+              <>
+                <svg width="8" height="9" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
+                  <path d="M1 1 L9 6 L1 11 Z" />
+                </svg>
+                <span>Resume</span>
+              </>
+            ) : (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+                <span>Play voice</span>
+              </>
+            )}
+          </button>
+
+          {/* Voice Narration: Stop */}
+          <button
+            type="button"
+            onClick={handleStopVoice}
+            disabled={voiceState === 'idle'}
+            aria-label="Stop transcript voice narration"
+            title="Stop voice"
+            className={`min-h-[34px] inline-flex items-center gap-1.5 border px-3 py-1 font-ui text-[13px] font-medium transition-all ${
+              voiceState !== 'idle'
+                ? 'border-red-500/70 bg-red-950/40 text-red-200 hover:border-red-400 hover:bg-red-900/50 cursor-pointer shadow-sm'
+                : 'border-ivory/20 bg-ivory/5 text-cream/40 cursor-not-allowed opacity-50'
+            } focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory`}
+          >
+            <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true" fill="currentColor">
+              <rect width="10" height="10" rx="1" />
+            </svg>
+            <span>Stop</span>
+          </button>
+
           <button
             type="button"
             onClick={copy}
@@ -107,6 +275,8 @@ function Transcript() {
             <button
               type="button"
               onClick={() => {
+                cancelSpeech()
+                setVoiceState('idle')
                 dispatch({ type: 'CLEAR_TRANSCRIPT' })
                 actions.announce('Transcript cleared.')
               }}

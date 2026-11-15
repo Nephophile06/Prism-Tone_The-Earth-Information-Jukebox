@@ -706,17 +706,6 @@ export default function ImagePanel() {
       }
     >
       <div className="flex flex-col gap-6">
-        {/* Intro Banner */}
-        <div className="border border-ivory/10 bg-black/25 p-3.5 sm:p-4">
-          <p className="max-w-[85ch] font-ui text-[14px] leading-relaxed text-cream">
-            <span className="font-semibold text-ivory">NASA Earth Information Center (EIC)</span> produces extraordinary
-            visualizations of our changing planet. The <span className="text-ivory font-medium">Earth Jukebox</span> turns each visual frame
-            into a deterministic soundscape. Position on the supplied colour ramp (or hue, when no ramp is supplied) sets pitch,
-            luminance and edge density set velocity and density, and local flashes add percussion. Each dataset has its own key,
-            scale, tempo and instrument palette. A visual playhead follows the score beat, not wall-clock time.
-          </p>
-        </div>
-
         {/* EIC Presets Carousel / Grid */}
         {activeTab === 'eic' && (
           <div className="space-y-3">
