@@ -99,14 +99,14 @@ export default function Sparkline({ points, current = -1, normal = null, decimal
             <circle
               cx={x(current)}
               cy={y(currentPoint.value)}
-              r="4.5"
-              fill="rgba(217, 140, 95, 0.3)"
+              r="2"
+              fill="rgba(217, 140, 95, 0.35)"
               vectorEffect="non-scaling-stroke"
             />
             <circle
               cx={x(current)}
               cy={y(currentPoint.value)}
-              r="2.2"
+              r="1.1"
               fill="#d98c5f"
               vectorEffect="non-scaling-stroke"
             />

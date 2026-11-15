@@ -97,38 +97,38 @@ function SummaryPanel() {
         </span>
       </div>
 
-      <dl className="mt-2.5 grid grid-cols-3 gap-x-3 gap-y-2">
-        <div className="space-y-2">
+      <dl className="mt-3.5 grid grid-cols-3 gap-x-4 gap-y-3">
+        <div className="space-y-3">
           <SummaryStat label="Minimum" value={s.selMin} decimals={variable.decimals} unit={variable.unit} />
           <SummaryStat label="Mean" value={s.selMean} decimals={variable.decimals} unit={variable.unit} />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <SummaryStat label="Maximum" value={s.selMax} decimals={variable.decimals} unit={variable.unit} />
           <div>
-            <dt className="font-ui text-[11.5px] text-cream">
+            <dt className="font-ui text-[12.5px] text-cream">
               vs {BASELINE.start}–{BASELINE.end} normal
             </dt>
-            <dd className="mt-0.5 font-data text-[13px] text-ivory">
+            <dd className="mt-0.5 font-data text-[14px] text-ivory">
               {hasComparison ? (
                 <>
                   {fmtDelta(s.delta, variable.decimals, variable.unit)}{' '}
                   {Math.abs(s.normal) > 0.05 && (
-                    <span className="font-ui text-[11px] text-cream">({fmtPct((s.delta / s.normal) * 100)})</span>
+                    <span className="font-ui text-[11.5px] text-cream">({fmtPct((s.delta / s.normal) * 100)})</span>
                   )}
                 </>
               ) : (
-                <span className="font-ui text-[11.5px] text-cream">unavailable</span>
+                <span className="font-ui text-[12px] text-cream">unavailable</span>
               )}
             </dd>
           </div>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div>
-            <dt className="font-ui text-[11.5px] text-cream">Coverage</dt>
-            <dd className="mt-0.5 font-data text-[13px] text-ivory">
+            <dt className="font-ui text-[12.5px] text-cream">Coverage</dt>
+            <dd className="mt-0.5 font-data text-[14px] text-ivory">
               {s.validCount}/{s.totalCount} periods
               {s.coverage < 1 && s.totalCount > 0 && (
-                <span className="block font-ui text-[11px] text-cream">({Math.round(s.coverage * 100)}% valid)</span>
+                <span className="block font-ui text-[11.5px] text-cream">({Math.round(s.coverage * 100)}% valid)</span>
               )}
             </dd>
           </div>
@@ -160,16 +160,13 @@ function ProvenanceStrip({ state, variable }) {
   const retrieved = meta.fetchedAt ? `${fmtTime(meta.fetchedAt)} · ${viaLabel}` : viaLabel
 
   return (
-    <section aria-label="Data provenance" className="mt-3">
-      <h3 className="font-stencil text-[10.5px] uppercase tracking-[0.18em] text-beige">Where this comes from</h3>
-      <dl className="mt-1 grid grid-cols-3 gap-x-3 gap-y-1">
+    <section aria-label="Data provenance" className="mt-4 pt-1">
+      <h3 className="font-stencil text-[11px] uppercase tracking-[0.18em] text-beige">Where this comes from</h3>
+      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2.5">
         <ProvRow label="Source" value={`${SOURCE.name} · MERRA-2`} />
         <ProvRow label="Parameter" value={`${variable.param} · ${variable.headline || variable.name}`} />
         <ProvRow label="Sample" value={sample} />
-        <div className="col-span-3">
-          <dt className="font-ui text-[11px] text-beige">Retrieved</dt>
-          <dd className="mt-0.5 font-data text-[11px] text-ivory truncate">{retrieved}</dd>
-        </div>
+        <ProvRow label="Retrieved" value={retrieved} />
       </dl>
     </section>
   )
@@ -178,8 +175,8 @@ function ProvenanceStrip({ state, variable }) {
 function ProvRow({ label, value }) {
   return (
     <div>
-      <dt className="font-ui text-[11px] text-beige">{label}</dt>
-      <dd className="mt-0.5 font-data text-[11px] leading-tight text-ivory truncate">{value}</dd>
+      <dt className="font-ui text-[12px] text-beige">{label}</dt>
+      <dd className="mt-0.5 font-data text-[12px] leading-snug text-ivory truncate">{value}</dd>
     </div>
   )
 }
@@ -195,8 +192,8 @@ function SummaryStat({ label, value, decimals, unit, className = '' }) {
   const shown = value !== null && value !== undefined
   return (
     <div className={className}>
-      <dt className="font-ui text-[11.5px] text-cream">{label}</dt>
-      <dd className="mt-0.5 font-data text-[13px] text-ivory">
+      <dt className="font-ui text-[12.5px] text-cream">{label}</dt>
+      <dd className="mt-0.5 font-data text-[14px] text-ivory">
         {shown ? `${fmtValue(value, decimals)} ${unit}` : '—'}
       </dd>
     </div>
