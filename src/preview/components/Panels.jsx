@@ -20,7 +20,20 @@ function SummaryPanel() {
   const [summaryPlaying, setSummaryPlaying] = useState(false)
   const summaryTimerRef = useRef(null)
 
+  const handleStopSummary = () => {
+    if (summaryTimerRef.current) {
+      clearTimeout(summaryTimerRef.current)
+      summaryTimerRef.current = null
+    }
+    setSummaryPlaying(false)
+    actions.stop()
+  }
+
   const handlePlaySummary = () => {
+    if (summaryPlaying) {
+      handleStopSummary()
+      return
+    }
     if (!hasSelectedTrack) {
       actions.playSummary()
       return
@@ -32,6 +45,13 @@ function SummaryPanel() {
       setSummaryPlaying(false)
     }, 6000)
   }
+
+  useEffect(() => {
+    if (state.playState === 'playing' && summaryPlaying) {
+      setSummaryPlaying(false)
+      if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current)
+    }
+  }, [state.playState, summaryPlaying])
 
   useEffect(() => {
     return () => {
@@ -114,9 +134,10 @@ function SummaryPanel() {
         <button
           type="button"
           onClick={handlePlaySummary}
+          aria-label={summaryPlaying ? 'Stop summary motif' : 'Hear data summary motif'}
           className={`inline-flex shrink-0 items-center gap-1.5 border px-2.5 py-1 font-ui text-[12.5px] transition-all cursor-pointer ${
             summaryPlaying
-              ? 'border-ember bg-ember/20 text-ember'
+              ? 'border-ember bg-ember/20 text-ember hover:bg-ember/30'
               : 'border-ivory/40 bg-ivory/10 text-ivory hover:border-ivory/70 hover:bg-ivory/20'
           } focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory`}
         >
@@ -138,6 +159,26 @@ function SummaryPanel() {
             </>
           )}
         </button>
+
+        {/* Stop button right after Hear summary */}
+        <button
+          type="button"
+          onClick={handleStopSummary}
+          disabled={!summaryPlaying}
+          aria-label="Stop summary playback"
+          title={summaryPlaying ? 'Stop summary' : 'No summary currently playing'}
+          className={`inline-flex shrink-0 items-center gap-1.5 border px-2.5 py-1 font-ui text-[12.5px] transition-all ${
+            summaryPlaying
+              ? 'border-red-500/70 bg-red-950/40 text-red-200 hover:border-red-400 hover:bg-red-900/50 cursor-pointer shadow-sm'
+              : 'border-ivory/20 bg-ivory/5 text-cream/40 cursor-not-allowed opacity-50'
+          } focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory`}
+        >
+          <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true" fill="currentColor">
+            <rect width="10" height="10" rx="1" />
+          </svg>
+          Stop
+        </button>
+
         <span className="font-ui text-[11.5px] leading-tight text-cream/80">
           6s motif of range, mean & anomaly
         </span>
