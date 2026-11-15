@@ -336,9 +336,9 @@ function MappingPanel() {
               </summary>
               <div className="grid gap-3 pt-3 md:grid-cols-2">
                 <Note title="Input">{m.input}</Note>
-                <Note title="Normalise">{m.normalize}</Note>
-                <Note title="Audio parameter">{m.parameter}. {m.direction}</Note>
                 <Note title="Missing data">{m.missing}</Note>
+                <Note title="Audio parameter">{m.parameter}. {m.direction}</Note>
+                <Note title="Normalise">{m.normalize}</Note>
                 <Note title="Layers">
                   {m.layers.map(([name, desc]) => `${name}: ${desc}`).join(' · ')}
                 </Note>
