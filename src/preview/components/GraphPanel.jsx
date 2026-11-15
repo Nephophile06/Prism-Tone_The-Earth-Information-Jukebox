@@ -614,6 +614,7 @@ function WaveformGraph() {
     let lastDraw = 0
     let visible = true
     const buf = new Float32Array(2048)
+    let currentScale = 3.0
 
     const draw = (now = performance.now()) => {
       const analyser = engine.analyser
@@ -642,49 +643,151 @@ function WaveformGraph() {
       const ctx = canvas.getContext('2d')
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, w, h)
+
+      // Technical dark backdrop & outer frame
+      ctx.fillStyle = 'rgba(10, 12, 13, 0.7)'
+      ctx.fillRect(0, 0, w, h)
       ctx.strokeStyle = IVORY + '0.16)'
       ctx.strokeRect(0.5, 0.5, w - 1, h - 1)
 
       const mid = h / 2
-      ctx.strokeStyle = IVORY + '0.14)'
-      ctx.beginPath()
-      ctx.moveTo(0, mid)
-      ctx.lineTo(w, mid)
-      ctx.stroke()
+      const padL = 38
+      const padR = 12
+      const plotW = Math.max(10, w - padL - padR)
+
+      // Draw subtle horizontal oscilloscope calibration grid (+1.0, +0.5, 0.0, -0.5, -1.0)
+      ctx.lineWidth = 1
+      ctx.font = '10px Oxanium, monospace'
+      ctx.textAlign = 'right'
+
+      const gridLevels = [
+        { val: 1.0, y: mid - mid * 0.78, label: '+1.0' },
+        { val: 0.5, y: mid - mid * 0.39, label: '+0.5' },
+        { val: 0.0, y: mid, label: ' 0.0', zero: true },
+        { val: -0.5, y: mid + mid * 0.39, label: '-0.5' },
+        { val: -1.0, y: mid + mid * 0.78, label: '-1.0' },
+      ]
+
+      for (const g of gridLevels) {
+        ctx.strokeStyle = g.zero ? 'rgba(217, 140, 95, 0.38)' : IVORY + '0.07)'
+        ctx.setLineDash(g.zero ? [] : [3, 4])
+        ctx.beginPath()
+        ctx.moveTo(padL, g.y)
+        ctx.lineTo(w - padR, g.y)
+        ctx.stroke()
+        ctx.setLineDash([])
+
+        ctx.fillStyle = g.zero ? 'rgba(217, 140, 95, 0.85)' : IVORY + '0.45)'
+        ctx.fillText(g.label, padL - 8, g.y + 3)
+      }
+
+      // Draw vertical division time markers
+      ctx.strokeStyle = IVORY + '0.05)'
+      ctx.setLineDash([2, 5])
+      for (let i = 1; i < 8; i++) {
+        const gx = padL + (i / 8) * plotW
+        ctx.beginPath()
+        ctx.moveTo(gx, 8)
+        ctx.lineTo(gx, h - 8)
+        ctx.stroke()
+      }
+      ctx.setLineDash([])
 
       if (live) {
         try {
           if (typeof analyser.getFloatTimeDomainData === 'function') analyser.getFloatTimeDomainData(buf)
           else if (typeof analyser.getValue === 'function') buf.set(analyser.getValue())
         } catch { /* analyser not ready */ }
-        ctx.strokeStyle = EMBER + '0.95)'
-        ctx.lineWidth = 1.2
-        ctx.beginPath()
-        const step = Math.floor(buf.length / w) || 1
-        for (let x = 0; x < w; x++) {
-          const v = buf[x * step] || 0
-          const y = mid + v * mid * 0.92
-          if (x === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
+
+        // Determine peak amplitude for smooth adaptive gain scaling
+        let peak = 0
+        for (let i = 0; i < buf.length; i++) {
+          const abs = Math.abs(buf[i])
+          if (abs > peak) peak = abs
         }
-        ctx.stroke()
+
+        if (peak > 0.002) {
+          const targetScale = Math.min(5.4, Math.max(1.8, 0.72 / peak))
+          currentScale += (targetScale - currentScale) * 0.08
+        } else {
+          currentScale += (2.6 - currentScale) * 0.05
+        }
+
+        const step = Math.max(1, Math.floor(buf.length / plotW))
+        const pts = []
+        for (let x = 0; x < plotW; x++) {
+          const raw = buf[x * step] || 0
+          const amplified = Math.max(-1, Math.min(1, raw * currentScale))
+          const py = mid + amplified * (mid * 0.78)
+          pts.push({ x: padL + x, y: py })
+        }
+
+        if (pts.length > 1) {
+          // Mirrored gradient luminous area under and above the wave
+          ctx.beginPath()
+          ctx.moveTo(pts[0].x, mid)
+          for (let i = 0; i < pts.length; i++) {
+            ctx.lineTo(pts[i].x, pts[i].y)
+          }
+          ctx.lineTo(pts[pts.length - 1].x, mid)
+          ctx.closePath()
+
+          const grad = ctx.createLinearGradient(0, mid - mid * 0.78, 0, mid + mid * 0.78)
+          grad.addColorStop(0, 'rgba(217, 140, 95, 0.35)')
+          grad.addColorStop(0.5, 'rgba(242, 237, 227, 0.03)')
+          grad.addColorStop(1, 'rgba(193, 154, 91, 0.30)')
+          ctx.fillStyle = grad
+          ctx.fill()
+
+          // Primary high-contrast luminous signal trace
+          ctx.shadowColor = 'rgba(217, 140, 95, 0.85)'
+          ctx.shadowBlur = 8
+          ctx.strokeStyle = '#fffbf0'
+          ctx.lineWidth = 1.8
+          ctx.lineCap = 'round'
+          ctx.lineJoin = 'round'
+          ctx.beginPath()
+          ctx.moveTo(pts[0].x, pts[0].y)
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i].x, pts[i].y)
+          }
+          ctx.stroke()
+          ctx.shadowBlur = 0
+        }
+
         if (!document.hidden && visible) raf = requestAnimationFrame(draw)
       } else {
-        ctx.strokeStyle = IVORY + '0.55)'
-        ctx.lineWidth = 1
+        // Zero-line resting state
+        ctx.strokeStyle = IVORY + '0.45)'
+        ctx.lineWidth = 1.2
         ctx.beginPath()
-        ctx.moveTo(0, mid)
-        ctx.lineTo(w, mid)
+        ctx.moveTo(padL, mid)
+        ctx.lineTo(w - padR, mid)
         ctx.stroke()
-        ctx.fillStyle = IVORY + '0.75)'
+
+        // Center reticle indicator
+        ctx.fillStyle = 'rgba(217, 140, 95, 0.9)'
+        ctx.beginPath()
+        ctx.arc(padL + plotW / 2, mid, 3, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.fillStyle = IVORY + '0.78)'
         ctx.font = '12px Oxanium, monospace'
         ctx.textAlign = 'center'
         ctx.fillText(
           state.playState === 'paused'
-            ? 'PAUSED — RESUME TO HEAR THE SIGNAL'
-            : 'PRESS PLAY — THE GENERATED SIGNAL DRAWS HERE',
-          w / 2,
-          mid - 10,
+            ? 'PAUSED — RESUME PLAYBACK TO MONITOR SIGNAL'
+            : 'STANDBY — START PLAYBACK TO MONITOR LIVE AUDIO',
+          padL + plotW / 2,
+          mid - 14,
+        )
+
+        ctx.font = '11px Outfit, sans-serif'
+        ctx.fillStyle = IVORY + '0.42)'
+        ctx.fillText(
+          'Zero-voltage central axis · Live post-master tap',
+          padL + plotW / 2,
+          mid + 20,
         )
       }
     }
@@ -720,12 +823,28 @@ function WaveformGraph() {
 
   return (
     <div>
-      <p className="mb-3 font-ui text-[14px] leading-relaxed text-cream">
-        A live tap of the audio after the limiter and volume stage — not a decorative animation. Silence draws a flat line.
-      </p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="font-ui text-[13.5px] leading-relaxed text-cream">
+          Live time-domain audio tap post-limiter. Silence settles on the zero axis.
+        </p>
+        <div className="flex items-center gap-2 font-data text-[12px] text-cream">
+          <span className="flex items-center gap-1.5 border border-ivory/15 bg-white/[0.04] px-2 py-0.5">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                playing ? 'bg-ember animate-pulse shadow-[0_0_8px_rgba(217,140,95,0.8)]' : 'bg-cream/40'
+              }`}
+              aria-hidden="true"
+            />
+            {playing ? 'SIGNAL ACTIVE' : 'STANDBY'}
+          </span>
+          <span className="hidden sm:inline-block border border-ivory/15 bg-white/[0.04] px-2 py-0.5 text-beige">
+            2048-pt FFT
+          </span>
+        </div>
+      </div>
       <canvas
         ref={canvasRef}
-        className="block h-44 w-full md:h-48"
+        className="block h-72 sm:h-80 md:h-[330px] lg:h-[350px] w-full"
         role="img"
         aria-label="Real-time waveform of the generated sonification audio. When playback is stopped or paused, the line is flat."
       />
