@@ -59,7 +59,7 @@ export default function NowSounding({ className = '' }) {
   return (
     <section
       aria-label="Now sounding captions"
-      className={`relative z-30 border border-ivory/10 bg-coal/40 p-4 md:p-5 flex flex-col min-h-0 ${className}`}
+      className={`relative z-30 border border-ivory/10 bg-coal/40 p-4 md:p-5 flex flex-col min-h-0 overflow-hidden ${className}`}
     >
       {/* Value and comparison bar at the top of the card */}
       <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-3 border-b border-ivory/10 pb-3">
