@@ -21,6 +21,14 @@ import {
   musicalClause,
   scoreSoundSentence,
 } from '../src/preview/lib/score.js'
+import {
+  speak,
+  cancelSpeech,
+  isSpeechSupported,
+  isSpeaking,
+  createMilestoneGate,
+  milestoneFor,
+} from '../src/preview/lib/speech.js'
 
 /* The app imports extensionless specifiers (Vite resolves them); plain Node
    needs the `.js` suffix. This hook only affects this test process. */
@@ -354,6 +362,59 @@ const emptyDigest = buildSelectionSummary({
 })
 ok('summary with no observations plays nothing', emptyDigest.notes.length === 0)
 ok('summary with no observations says so', emptyDigest.text.includes('no summary can be played'))
+
+/* ------------------------------------------------------------------ */
+/* Voice guide: opt-in browser speech                                  */
+/* ------------------------------------------------------------------ */
+
+console.log('voice guide speech')
+const spoken = []
+let cancels = 0
+let resumes = 0
+
+class FakeUtterance {
+  constructor(text) {
+    this.text = text
+  }
+}
+
+globalThis.window = {
+  speechSynthesis: {
+    speaking: false,
+    pending: false,
+    cancel() { cancels += 1 },
+    resume() { resumes += 1 },
+    speak(utterance) { spoken.push(utterance) },
+  },
+  SpeechSynthesisUtterance: FakeUtterance,
+}
+
+ok('speech is available with an engine', isSpeechSupported())
+ok('a sentence starts', speak('Now playing.', { volume: 0.8 }))
+eq('the engine is cancelled before speaking', cancels, 1)
+eq('resume is called before speak', resumes, 1)
+eq('the utterance language is en-US', spoken[0].lang, 'en-US')
+ok('the rate stays between 0.95 and 1', spoken[0].rate >= 0.95 && spoken[0].rate <= 1)
+eq('volume follows the page volume', spoken[0].volume, 0.8)
+ok('a muted page does not speak', speak('Muted.', { volume: 0 }) === false)
+eq('muted speech adds no utterance', spoken.length, 1)
+cancelSpeech()
+ok('cancel clears the speaking flag', isSpeaking() === false)
+
+const gate = createMilestoneGate(12000)
+const high = milestoneFor(8.7, { min: 2.5, max: 8.7 })
+const low = milestoneFor(2.5, { min: 2.5, max: 8.7 })
+eq('the record high is recognised', high && high.kind, 'high')
+ok('the first record callout is allowed', gate.shouldSpeak(high, '201007', 100000))
+ok('a milestone is not spoken twice for the same step', gate.shouldSpeak(high, '201007', 125000) === false)
+ok('the record low waits for the throttle window', gate.shouldSpeak(low, '201012', 105000) === false)
+ok('the record low speaks after twelve seconds', gate.shouldSpeak(low, '201012', 112000))
+ok('a flat selection has no milestone', milestoneFor(5, { min: 5, max: 5 }) === null)
+ok('tiny numeric noise still matches the record', milestoneFor(8.7 + 1e-12, { min: 2.5, max: 8.7 }).kind === 'high')
+
+delete globalThis.window
+ok('speech is unavailable without a browser engine', isSpeechSupported() === false)
+ok('speaking without support is a silent no-op', speak('Hello.', { volume: 1 }) === false)
 
 console.log('')
 console.log(`${checks - failures}/${checks} checks passed`)

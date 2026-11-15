@@ -8,11 +8,12 @@
  * never clipped by the map or deck, and restores focus when it closes.
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePreview } from '../state/PreviewContext'
 import { CAPTION_SIZES, DEFAULT_SETTINGS } from '../lib/settings'
 import { SHORTCUTS } from './Accessibility'
+import { getAvailableVoices, speak } from '../lib/speech'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])'
@@ -22,6 +23,19 @@ export default function SettingsDrawer() {
   const open = state.settingsOpen
   const panelRef = useRef(null)
   const closeRef = useRef(null)
+  const [voices, setVoices] = useState(() => getAvailableVoices())
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    const update = () => setVoices(getAvailableVoices())
+    update()
+    if (typeof window.speechSynthesis.addEventListener === 'function') {
+      window.speechSynthesis.addEventListener('voiceschanged', update)
+      return () => window.speechSynthesis.removeEventListener('voiceschanged', update)
+    } else if ('onvoiceschanged' in window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = update
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -193,6 +207,50 @@ export default function SettingsDrawer() {
                 if (v && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12)
               }}
             />
+            <ToggleRow
+              label="Voice guide"
+              hint="Browser speech reads a short intro, the summary, and record highs and lows. Off by default; captions still describe every month."
+              checked={settings.voiceGuide}
+              onChange={(v) => set('voiceGuide', v)}
+            />
+            {settings.voiceGuide && (
+              <div className="mt-2.5 rounded border border-ivory/15 bg-black/40 p-3 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="pt-voice-select" className="font-ui text-[12.5px] font-medium text-ivory">
+                    Voice Narrator
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => speak('Welcome to Prism Tone. This is the natural narration voice.', { volume: state.volume ?? 1, voiceURI: settings.voiceURI })}
+                    className="border border-ivory/25 bg-ivory/10 px-2 py-0.5 font-ui text-[11.5px] text-cream hover:border-ivory/60 hover:bg-ivory/20 hover:text-ivory transition-colors cursor-pointer"
+                  >
+                    ▶ Test Voice
+                  </button>
+                </div>
+                {voices.length > 0 ? (
+                  <select
+                    id="pt-voice-select"
+                    value={settings.voiceURI || ''}
+                    onChange={(e) => set('voiceURI', e.target.value)}
+                    className="w-full border border-ivory/20 bg-coal/90 px-2 py-1.5 font-ui text-[12.5px] text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                  >
+                    <option value="">Auto: Best Natural / Neural Voice (Recommended)</option>
+                    {voices.map((v) => {
+                      const isNatural = /natural|neural|online|google|enhanced|premium/i.test(v.name)
+                      return (
+                        <option key={v.voiceURI || v.name} value={v.voiceURI || v.name}>
+                          {isNatural ? '★ ' : ''}{v.name} ({v.lang})
+                        </option>
+                      )
+                    })}
+                  </select>
+                ) : (
+                  <p className="font-ui text-[11.5px] text-beige">
+                    Using browser default natural voice.
+                  </p>
+                )}
+              </div>
+            )}
           </section>
 
           {/* shortcuts */}

@@ -31,6 +31,7 @@ import {
   baselineNormal,
   monthKey,
   getMonthly,
+  keyToLabel,
 } from '../lib/processing'
 import {
   describeStep,
@@ -41,6 +42,14 @@ import {
 } from '../lib/captions'
 import { engine } from '../lib/sonify'
 import { buildSelectionSummary } from '../lib/summary'
+import { fmtValue } from '../lib/format'
+import {
+  speak,
+  cancelSpeech,
+  isSpeaking,
+  createMilestoneGate,
+  milestoneFor,
+} from '../lib/speech'
 import { DEFAULT_SETTINGS, CAPTION_SIZES, loadSettings, saveSettings, shouldOpenGuide } from '../lib/settings'
 import { LIVE_VARIABLES, VARIABLE_BY_ID, YEAR_MIN, YEAR_MAX } from '../data/datasets'
 import { REGION_BY_ID, DIVISION_BY_ID, GEOJSON_URL } from '../data/world'
@@ -133,6 +142,35 @@ function scopeNameFor(state) {
   return state.scope.type === 'division' || state.scope.type === 'region'
     ? divisionName(state.scope.id)
     : 'World'
+}
+
+/** One or two sentences for the opt-in voice guide, from values already shown. */
+function introPhrase(state) {
+  const variable = VARIABLE_BY_ID[state.variableId]
+  if (!variable) return ''
+  let period = `${state.year}`
+  if (state.timeMode === 'range') {
+    period = `${state.range.startYear} to ${state.range.endYear}`
+  } else if (state.timeMode === 'month') {
+    period = keyToLabel(monthKey(state.year, state.month))
+  }
+  const soundMode = (state.settings && state.settings.soundMode) || 'analysis'
+  const score = state.score || {}
+  let music
+  if (soundMode !== 'ambient' && score.status === 'ready' && score.scaleLabel) {
+    music = score.tempo ? `in ${score.scaleLabel} at ${Math.round(score.tempo)} beats per minute` : `in ${score.scaleLabel}`
+  } else if (soundMode === 'ambient') {
+    music = 'in ambient mode at a fixed pitch'
+  } else {
+    music = 'in harmonious data-mapped sound'
+  }
+  return `Now playing: ${variable.name} for ${scopeNameFor(state)}, ${period}. ${music}.`
+}
+
+function milestonePhrase(variable, milestone, step) {
+  const label = milestone.kind === 'high' ? 'Record high' : 'Record low'
+  const unit = variable.unit ? ` ${variable.unit}` : ''
+  return `${label}: ${fmtValue(milestone.value, variable.decimals)}${unit} in ${keyToLabel(step.key)}.`
 }
 
 const initialStateCaption = idleSelectionFor(initialState)
@@ -607,6 +645,8 @@ export function PreviewProvider({ children }) {
   const stateRef = useRef(state)
   const seriesMapRef = useRef(null)
   const stepsRef = useRef([])
+  const extremesRef = useRef({ min: null, max: null })
+  const milestoneGateRef = useRef(createMilestoneGate())
 
   useEffect(() => {
     stateRef.current = state
@@ -791,6 +831,21 @@ export function PreviewProvider({ children }) {
     stepsRef.current = steps
   }, [seriesMap, steps])
 
+  /* Record extremes for the lead layer's current selection, recomputed only
+     when the walk itself changes. A new selection also clears the spoken
+     milestones so the same record can be called out once in the new walk. */
+  useEffect(() => {
+    let min = null
+    let max = null
+    for (const step of steps) {
+      if (!step || typeof step.value !== 'number') continue
+      if (min === null || step.value < min) min = step.value
+      if (max === null || step.value > max) max = step.value
+    }
+    extremesRef.current = { min, max }
+    milestoneGateRef.current.reset()
+  }, [steps])
+
   const mappingRange = useMemo(() => rangeOf(seriesMap), [seriesMap])
   const normalByMonth = useMemo(() => normalsFor(seriesMap), [seriesMap])
 
@@ -887,6 +942,7 @@ export function PreviewProvider({ children }) {
       && (previous.analysisKey !== analysisKey || previous.layerKey !== layerKey)
     /* A lead, scope, time or layer change restarts the walk so audio and
        captions always agree with what is on screen. */
+    if (changed) cancelSpeech()
     if (changed && (state.playState !== 'idle' || engine.state !== 'idle' || engine.imageActive)) {
       engine.stop()
       dispatch({ type: 'STOP_SELECTION_CHANGED' })
@@ -1050,6 +1106,23 @@ export function PreviewProvider({ children }) {
         const valid = step && step.value !== null
         navigator.vibrate(valid ? 14 : 24)
       }
+      /* Voice guide calls out only the selection's record high and low. It
+         never reads the per-month caption, and it stays quiet while an intro
+         or summary sentence is still speaking so nothing is cut off. */
+      if (settings.voiceGuide && !document.hidden) {
+        const current = stateRef.current
+        const lead = VARIABLE_BY_ID[current.variableId]
+        const value = step ? step.value : null
+        if (lead && step && lead.status === 'live' && Number.isFinite(value) && !isSpeaking()) {
+          const milestone = milestoneFor(value, extremesRef.current)
+          if (milestone && milestoneGateRef.current.shouldSpeak(milestone, step.key)) {
+            speak(milestonePhrase(lead, milestone, step), {
+              volume: current.volume,
+              voiceURI: current.settings?.voiceURI,
+            })
+          }
+        }
+      }
     }
     engine.onend = () => {
       dispatch({ type: 'END' })
@@ -1067,6 +1140,7 @@ export function PreviewProvider({ children }) {
       engine.onstep = null
       engine.onend = null
       engine.onerror = null
+      cancelSpeech()
       engine.release()
     }
   }, [])
@@ -1074,7 +1148,9 @@ export function PreviewProvider({ children }) {
   /* ---- pause audio and the walk through time when the tab is hidden ---- */
   useEffect(() => {
     const onVisibility = () => {
-      if (document.hidden && engine.state === 'playing') {
+      if (!document.hidden) return
+      cancelSpeech()
+      if (engine.state === 'playing') {
         engine.pause()
         dispatch({ type: 'PAUSE' })
       }
@@ -1095,6 +1171,10 @@ export function PreviewProvider({ children }) {
   useEffect(() => {
     engine.setSoundMode((state.settings && state.settings.soundMode) || 'analysis')
   }, [state.settings.soundMode])
+  useEffect(() => {
+    /* Turning Voice guide off stops any sentence already in progress. */
+    if (!state.settings.voiceGuide) cancelSpeech()
+  }, [state.settings.voiceGuide])
 
   /* ---- transport actions ---- */
   const actions = useMemo(
@@ -1120,6 +1200,7 @@ export function PreviewProvider({ children }) {
           })
           return false
         }
+        const freshStart = current.playState === 'idle' && engine.state === 'idle'
         const started = engine.play()
         if (started === false) {
           dispatch({
@@ -1128,11 +1209,24 @@ export function PreviewProvider({ children }) {
           })
           return false
         }
+        /* A fresh Play owns the voice channel: an unfinished summary sentence
+           or an old callout must not talk over the new walk. */
+        cancelSpeech()
         dispatch({ type: 'PLAY' })
         dispatch({ type: 'SCORE_STATUS', patch: { source: engine.source } })
+        if (freshStart) {
+          milestoneGateRef.current.reset()
+          if (current.settings && current.settings.voiceGuide) {
+            speak(introPhrase(current), {
+              volume: current.volume,
+              voiceURI: current.settings.voiceURI,
+            })
+          }
+        }
         return true
       },
       pause: () => {
+        cancelSpeech()
         engine.pause()
         dispatch({ type: 'PAUSE' })
       },
@@ -1163,11 +1257,13 @@ export function PreviewProvider({ children }) {
         return true
       },
       stop: () => {
+        cancelSpeech()
         engine.stop()
         dispatch({ type: 'STOP' })
         dispatch({ type: 'IMAGE_PLAYBACK', active: false })
       },
       seek: (index) => {
+        cancelSpeech()
         engine.seek(index)
         dispatch({ type: 'SEEK', index })
       },
@@ -1183,6 +1279,7 @@ export function PreviewProvider({ children }) {
           engine.stop()
           dispatch({ type: 'STOP' })
         }
+        cancelSpeech()
         engine.setSoundMode(next)
         dispatch({ type: 'SET_SETTING', key: 'soundMode', value: next })
         dispatch({
@@ -1233,6 +1330,12 @@ export function PreviewProvider({ children }) {
         })
         if (!summary.notes.length) {
           dispatch({ type: 'ANNOUNCE', text: summary.text })
+          if (current.settings && current.settings.voiceGuide) {
+            speak(summary.text, {
+              volume: current.volume,
+              voiceURI: current.settings.voiceURI,
+            })
+          }
           return
         }
         const started = engine.playSummary(summary.notes)
@@ -1253,6 +1356,14 @@ export function PreviewProvider({ children }) {
             ? summary.text
             : 'The summary could not start. Stop any other audio and try again.',
         })
+        /* The live region still carries the sentence for screen readers; the
+           voice guide adds browser speech only when it was switched on. */
+        if (current.settings && current.settings.voiceGuide) {
+          speak(summary.text, {
+            volume: current.volume,
+            voiceURI: current.settings.voiceURI,
+          })
+        }
       },
     }),
     [],

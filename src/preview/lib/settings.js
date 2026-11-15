@@ -11,6 +11,8 @@ export const DEFAULT_SETTINGS = {
   haptics: false,
   hoverSonify: true,
   soundMode: 'analysis', // analysis | ambient
+  voiceGuide: false, // opt-in browser speech; captions remain the default channel
+  voiceURI: '', // specific preferred voice URI or empty for automatic best voice
 }
 
 export const CAPTION_SIZES = {
