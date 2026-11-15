@@ -1085,122 +1085,8 @@ export default function ImagePanel() {
               </div>
             )}
 
-            {/* Playback Controls & Status */}
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              {activeTab === 'eic' && (
-                <div className="flex" role="group" aria-label="Dataset navigation">
-                  <button
-                    type="button"
-                    onClick={() => stepPreset(-1)}
-                    aria-label="Previous dataset"
-                    className="border border-ivory/25 px-2.5 py-1 font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
-                  >
-                    Prev
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => stepPreset(1)}
-                    aria-label="Next dataset"
-                    className="border-y border-r border-ivory/25 px-2.5 py-1 font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-
-              {activeTab === 'eic' && (
-                <button
-                  type="button"
-                  onClick={togglePlayAll}
-                  aria-pressed={autoAdvance}
-                  aria-label="Play all datasets in order"
-                  title="Play every curated dataset from first to last, then stop"
-                  className={`border px-2.5 py-1 font-ui text-[12.5px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory ${
-                    autoAdvance
-                      ? 'border-ember/70 bg-ember/15 text-ivory'
-                      : 'border-ivory/25 text-cream hover:border-ivory/50 hover:text-ivory'
-                  }`}
-                >
-                  {autoAdvance ? 'Queue on' : 'Play all'}
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => handleListen()}
-                disabled={!playing && !canListen}
-                className={`min-h-[46px] px-6 font-ui text-[15px] font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory ${
-                  playing
-                    ? 'border border-red-500/70 bg-red-950/40 text-red-200 hover:bg-red-900/50'
-                    : 'border border-ember/70 bg-ember/20 text-ivory hover:border-ember hover:bg-ember/30 shadow-md shadow-amber-950/20'
-                } disabled:cursor-not-allowed disabled:opacity-40`}
-              >
-                {playing ? 'Stop Sonification' : status === 'loading' ? 'Synthesizing…' : '▶ Play Earth Sonification'}
-              </button>
-
-              <p className="font-ui text-[12px] leading-snug text-beige">
-                {activeTab === 'eic'
-                  ? result?.live
-                    ? 'Live browser-vision score computed for this frame'
-                    : result?.fallback
-                      ? 'Live scoring unavailable — playing the checked-in score'
-                      : liveScore
-                        ? 'Live scoring selected · falls back to the checked-in score'
-                        : 'Precomputed score checked in with the frame · no network needed'
-                  : activeTab === 'video'
-                    ? result?.analysis?.synthetic
-                      ? 'Frame access was blocked, so this is an illustrative fallback — not a measurement. Upload the clip locally for a real analysis.'
-                      : 'Browser-native video sonification · sampled frames via HTML5 Canvas & Tone.js'
-                    : 'Browser-native computer vision sonification via HTML5 Canvas & Tone.js'}
-              </p>
-
-              {activeTab === 'eic' && (
-                <button
-                  type="button"
-                  onClick={copyShareLink}
-                  className="border border-ivory/25 px-2.5 py-1 font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
-                >
-                  Copy link
-                </button>
-              )}
-
-              {activeTab === 'eic' && activePreset.dataLink && (
-                <button
-                  type="button"
-                  onClick={openDataLink}
-                  title={activePreset.dataLink.label}
-                  className="border border-ivory/25 px-2.5 py-1 font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
-                >
-                  Hear related POWER data
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={exportScore}
-                className="border border-ivory/25 px-2.5 py-1 font-ui text-[12.5px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory"
-              >
-                Export score
-              </button>
-
-              {playing && (
-                <span className="inline-flex items-center gap-2 border border-ember/40 bg-ember/10 px-3 py-1.5 font-ui text-[13px] text-ivory">
-                  <span className="h-2 w-2 rounded-full bg-ember animate-ping motion-reduce:animate-none" />
-                  Playing {activeTab === 'eic' ? activePreset.shortName : activeTab === 'video' ? 'Video Sequence' : 'Custom Image'} · {currentScan} scan
-                  {activeTab === 'eic' && ` · ${activePreset.key} ${activePreset.scale}`}
-                  {activeTab === 'eic' && autoAdvance && ' · play-all queue'}
-                </span>
-              )}
-            </div>
-
-            {error && (
-              <p className="border border-ember/50 bg-ember/10 px-3 py-2 font-ui text-[13px] text-cream">
-                {error}
-              </p>
-            )}
-
             {currentCaption && (
-              <div className="border-l-2 border-ember bg-black/40 pl-3 py-2">
+              <div className="border-l-2 border-ember bg-black/40 pl-3 py-2 mt-2">
                 <span className="block font-data text-[11.5px] uppercase tracking-wider text-beige">Now sounding:</span>
                 <p className="mt-0.5 font-ui text-[14.5px] leading-relaxed text-ivory">
                   {currentCaption}
@@ -1340,6 +1226,130 @@ export default function ImagePanel() {
                 </p>
               </div>
             ) : null}
+
+            {/* Playback Controls & Status (Right Column Aligned) */}
+            <div className="border border-ivory/15 bg-black/40 p-3 sm:p-3.5 flex flex-col gap-2.5">
+              {/* Primary Action Row: Play Button & Navigation */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleListen()}
+                  disabled={!playing && !canListen}
+                  className={`flex-1 min-h-[44px] px-4 font-ui text-[14px] font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer flex items-center justify-center gap-2 ${
+                    playing
+                      ? 'border border-red-500/70 bg-red-950/40 text-red-200 hover:bg-red-900/50'
+                      : 'border border-ember/70 bg-ember/20 text-ivory hover:border-ember hover:bg-ember/30 shadow-md shadow-amber-950/20'
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+                >
+                  {playing ? 'Stop Sonification' : status === 'loading' ? 'Synthesizing…' : '▶ Play Earth Sonification'}
+                </button>
+
+                {activeTab === 'eic' && (
+                  <div className="flex items-center" role="group" aria-label="Dataset navigation">
+                    <button
+                      type="button"
+                      onClick={() => stepPreset(-1)}
+                      aria-label="Previous dataset"
+                      className="border border-ivory/25 px-2.5 py-2 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                    >
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => stepPreset(1)}
+                      aria-label="Next dataset"
+                      className="border-y border-r border-ivory/25 px-2.5 py-2 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+
+                {activeTab === 'eic' && (
+                  <button
+                    type="button"
+                    onClick={togglePlayAll}
+                    aria-pressed={autoAdvance}
+                    aria-label="Play all datasets in order"
+                    title="Play every curated dataset from first to last, then stop"
+                    className={`border px-2.5 py-2 font-ui text-[12px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer ${
+                      autoAdvance
+                        ? 'border-ember/70 bg-ember/15 text-ivory'
+                        : 'border-ivory/25 text-cream hover:border-ivory/50 hover:text-ivory'
+                    }`}
+                  >
+                    {autoAdvance ? 'Queue on' : 'Play all'}
+                  </button>
+                )}
+              </div>
+
+              {/* Status info */}
+              <p className="font-ui text-[11.5px] leading-snug text-beige">
+                {activeTab === 'eic'
+                  ? result?.live
+                    ? 'Live browser-vision score computed for this frame'
+                    : result?.fallback
+                      ? 'Live scoring unavailable — playing the checked-in score'
+                      : liveScore
+                        ? 'Live scoring selected · falls back to the checked-in score'
+                        : 'Precomputed score checked in with the frame · no network needed'
+                  : activeTab === 'video'
+                    ? result?.analysis?.synthetic
+                      ? 'Frame access was blocked, so this is an illustrative fallback — not a measurement. Upload the clip locally for a real analysis.'
+                      : 'Browser-native video sonification · sampled frames via HTML5 Canvas & Tone.js'
+                    : 'Browser-native computer vision sonification via HTML5 Canvas & Tone.js'}
+              </p>
+
+              {/* Secondary Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-ivory/10">
+                {activeTab === 'eic' && (
+                  <button
+                    type="button"
+                    onClick={copyShareLink}
+                    className="border border-ivory/25 px-2.5 py-1 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                  >
+                    Copy link
+                  </button>
+                )}
+
+                {activeTab === 'eic' && activePreset.dataLink && (
+                  <button
+                    type="button"
+                    onClick={openDataLink}
+                    title={activePreset.dataLink.label}
+                    className="border border-ivory/25 px-2.5 py-1 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                  >
+                    Hear related POWER data
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={exportScore}
+                  className="border border-ivory/25 px-2.5 py-1 font-ui text-[12px] text-cream transition-colors hover:border-ivory/50 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-ivory cursor-pointer"
+                >
+                  Export score
+                </button>
+              </div>
+
+              {/* Active playing indicator badge */}
+              {playing && (
+                <div className="inline-flex items-center gap-2 border border-ember/40 bg-ember/10 px-2.5 py-1.5 font-ui text-[12px] text-ivory">
+                  <span className="h-2 w-2 rounded-full bg-ember animate-ping motion-reduce:animate-none shrink-0" />
+                  <span className="truncate">
+                    Playing {activeTab === 'eic' ? activePreset.shortName : activeTab === 'video' ? 'Video' : 'Image'} · {currentScan} scan
+                    {activeTab === 'eic' && ` · ${activePreset.key} ${activePreset.scale}`}
+                    {activeTab === 'eic' && autoAdvance && ' · queue'}
+                  </span>
+                </div>
+              )}
+
+              {error && (
+                <p className="border border-ember/50 bg-ember/10 px-2.5 py-1.5 font-ui text-[12px] text-cream">
+                  {error}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
